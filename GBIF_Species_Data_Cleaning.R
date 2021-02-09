@@ -1,8 +1,18 @@
-# This script cleans the raw species occurrence datasets before the SDM
+# This script cleans the raw GBIF species occurrence datasets before the SDM
 
 # Setup
 library(dplyr)
 setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM MaxEnt Mechanistic/")
+
+
+# Define a decimal places function for filtering by lat/long reporting precision uncertainty
+decimalNums <- function(x) {
+  if ((x %% 1) != 0) {
+    nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+  } else {
+    return(0)
+  }
+}
 
 
 # Read in all mosquitoes of Culicidae for background points
@@ -21,25 +31,53 @@ Mosquitoes_SpeciesOfInterest_Raw <- rbind(
 )
 
 
-# Clean occurrence data by relevant parameters and filter occurrences from 2000-2020
-Mosquitoes_All <- Mosquitoes_All_Raw %>%
+# Filter occurrences from 2000-2019, and by <= 1000m uncertainty or < 2 decimal points for lat/long reporting precision uncertainty
+Mosquitoes_All <- Mosquitoes_All_Raw[!is.na(Mosquitoes_All_Raw$decimalLatitude),] %>%
+  mutate(rowNum = 1:nrow(.)) %>%
   filter(basisOfRecord != "FOSSIL_SPECIMEN" &
            basisOfRecord != " LITERATURE" &
            species != "") %>%
   filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
   filter(year >= 2000 & year <= 2019) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy)
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy, rowNum)
+
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(Mosquitoes_All)) {
+  if(decimalNums(Mosquitoes_All$decimalLongitude[[i]]) < 2 &
+     decimalNums(Mosquitoes_All$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+
+Mosquitoes_All <- Mosquitoes_All[!Mosquitoes_All$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum)
 
 
 
-Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest_Raw %>%
+
+Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest_Raw[!is.na(Mosquitoes_SpeciesOfInterest_Raw$decimalLatitude),] %>%
+  mutate(rowNum = 1:nrow(.)) %>%
   filter(basisOfRecord != "FOSSIL_SPECIMEN" &
            basisOfRecord != " LITERATURE" &
            species != "") %>%
   filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
   filter(year >= 2000 & year <= 2019) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy)
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy, rowNum)
 
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(Mosquitoes_SpeciesOfInterest)) {
+  if(decimalNums(Mosquitoes_SpeciesOfInterest$decimalLongitude[[i]]) < 2 &
+     decimalNums(Mosquitoes_SpeciesOfInterest$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+
+Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest[!Mosquitoes_SpeciesOfInterest$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum)
 
 
 
