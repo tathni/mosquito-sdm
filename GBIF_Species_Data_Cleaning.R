@@ -33,7 +33,7 @@ Mosquitoes_SpeciesOfInterest_Raw <- rbind(
 Mosquitoes_Dryad_Raw <- read.csv("GBIF Datasets Raw/AnophelesStephensi_Dryad.csv", sep = ",", header = T, stringsAsFactors = F)
 
 
-# Filter occurrences from 2000-2019, and by <= 1000m uncertainty or < 2 decimal points for lat/long reporting precision uncertainty
+# Filter occurrences from 2000-2019, and by <= 1000m uncertainty or >= 2 decimal points for lat/long reporting precision uncertainty
 Mosquitoes_All <- Mosquitoes_All_Raw[!is.na(Mosquitoes_All_Raw$decimalLatitude),] %>%
   mutate(rowNum = 1:nrow(.)) %>%
   filter(basisOfRecord != "FOSSIL_SPECIMEN" &
