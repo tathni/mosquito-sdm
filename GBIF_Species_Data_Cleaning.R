@@ -19,7 +19,7 @@ decimalNums <- function(x) {
 Mosquitoes_All_Raw <- read.csv("GBIF Datasets Raw/AllMosquitoes_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
 
 
-# Read in mosquito species of interest datasets (GBIF and Dryad)
+# Read in mosquito species of interest datasets (GBIF and Sinka)
 Mosquitoes_SpeciesOfInterest_Raw <- rbind(
   read.csv("GBIF Datasets Raw/AedesAegypti_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/AedesAlbopictus_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
@@ -30,7 +30,7 @@ Mosquitoes_SpeciesOfInterest_Raw <- rbind(
   read.csv("GBIF Datasets Raw/CulexTarsalis_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
 )
 
-Mosquitoes_Dryad_Raw <- read.csv("GBIF Datasets Raw/AnophelesStephensi_Dryad.csv", sep = ",", header = T, stringsAsFactors = F)
+Mosquitoes_Sinka_Raw <- read.csv("GBIF Datasets Raw/AnophelesStephensi_Sinka2020.csv", sep = ",", header = T, stringsAsFactors = F)
 
 
 # Filter occurrences from 2000-2019, and by <= 1000m uncertainty or >= 2 decimal points for lat/long reporting precision uncertainty
@@ -82,35 +82,35 @@ Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest[!Mosquitoes_Species
 
 
 
-# Dryad dataset for Anopheles stephensi
-Mosquitoes_Dryad <- Mosquitoes_Dryad_Raw %>%
+# Sinka dataset for Anopheles stephensi
+Mosquitoes_Sinka <- Mosquitoes_Sinka_Raw %>%
   filter((year_start >= 2000 & year_end <= 2019) | (is.na(year_start) & publication_year >= 2010)) %>%
   filter (country != "Sudan" & country != "Djibouti" & country != "Ethiopia" & country != "Ehiopia") %>%
   dplyr::select(latitude, longitude, year_start, country) %>%
   mutate(species = "Anopheles stephensi")
 
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Iran"] <- "IR"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Pakistan"] <- "PK"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "India"] <- "IN"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Thailand"] <- "TH"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "China"] <- "CN"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Myanmar"] <- "MM"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Saudi Arabia"] <- "SA"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Qatar"] <- "QA"
-Mosquitoes_Dryad$country[Mosquitoes_Dryad$country == "Sri Lanka"] <- "LK"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Iran"] <- "IR"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Pakistan"] <- "PK"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "India"] <- "IN"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Thailand"] <- "TH"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "China"] <- "CN"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Myanmar"] <- "MM"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Saudi Arabia"] <- "SA"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Qatar"] <- "QA"
+Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Sri Lanka"] <- "LK"
 
-names(Mosquitoes_Dryad)[names(Mosquitoes_Dryad) == "latitude"] <- "decimalLatitude"
-names(Mosquitoes_Dryad)[names(Mosquitoes_Dryad) == "longitude"] <- "decimalLongitude"
-names(Mosquitoes_Dryad)[names(Mosquitoes_Dryad) == "year_start"] <- "year"
-names(Mosquitoes_Dryad)[names(Mosquitoes_Dryad) == "country"] <- "countryCode"
+names(Mosquitoes_Sinka)[names(Mosquitoes_Sinka) == "latitude"] <- "decimalLatitude"
+names(Mosquitoes_Sinka)[names(Mosquitoes_Sinka) == "longitude"] <- "decimalLongitude"
+names(Mosquitoes_Sinka)[names(Mosquitoes_Sinka) == "year_start"] <- "year"
+names(Mosquitoes_Sinka)[names(Mosquitoes_Sinka) == "country"] <- "countryCode"
 
-Mosquitoes_Dryad <- Mosquitoes_Dryad[, colnames(Mosquitoes_Dryad)[c(5,2,1,4,3)]]
+Mosquitoes_Sinka <- Mosquitoes_Sinka[, colnames(Mosquitoes_Sinka)[c(5,2,1,4,3)]]
 
 
 
-# Combine the GBIF and Dryad datasets
-Mosquitoes_All <- rbind(Mosquitoes_All, Mosquitoes_Dryad)
-Mosquitoes_SpeciesOfInterest <- rbind(Mosquitoes_SpeciesOfInterest, Mosquitoes_Dryad)
+# Combine the GBIF and Sinka datasets
+Mosquitoes_All <- rbind(Mosquitoes_All, Mosquitoes_Sinka)
+Mosquitoes_SpeciesOfInterest <- rbind(Mosquitoes_SpeciesOfInterest, Mosquitoes_Sinka)
 
 
 # Write CSV files containing cleaned datasets for use in the SDM
