@@ -1,4 +1,4 @@
-# This script runs the SDM for each of the 7 species of interest
+# This script extracts and collates raster data for each of the 7 species of interest
 
 # Setup
 library(raster)
@@ -218,12 +218,6 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   occGPS_train <- assign(trainingList[i], occGPS_raw[sample(nrow(occGPS_raw), q), ])
   occGPS_eval <- assign(evaluationList[i], setdiff(occGPS_raw, occGPS_train))
   
-  
-  # # Save the training and evaluation data as .csv files
-  # csvName_Training <- paste0(SpeciesOfInterest_Names[i]," Training Data.csv")
-  # csvName_Evaluation <- paste0(SpeciesOfInterest_Names[i]," Evaluation Data.csv")
-  # write.csv(occGPS_train, file = csvName_Training, row.names = FALSE)
-  # write.csv(occGPS_eval, file = csvName_Evaluation, row.names = FALSE)
   
   
   # Isolate long/lat coordinates of occurrence points
