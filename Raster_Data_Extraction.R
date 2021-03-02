@@ -174,8 +174,8 @@ evaluationList <- c("AedesAegypti_Evaluation",
                      "CulexTarsalis_Evaluation")
 
 
-summaryStats <- data.frame(matrix(ncol = 5, nrow=7))
-colnames(summaryStats) <- c("Species","Activity Season Restriction","Training","Background","Evaluation")
+summaryStats <- data.frame(matrix(ncol = 6, nrow=7))
+colnames(summaryStats) <- c("Species","Activity Season Restriction","Training Occurrences","Training Background","Evaluation Occurrences","Evaluation Background")
 
 sdmData_yearRound <- list()
 sdmData_photoSeason <- list()
@@ -237,30 +237,31 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   colnames(cells_eval) <- c("decimalLongitude","decimalLatitude")
   
   
-  # Random sample 10k (or 5k for certain species) background points from the region(s) on which the species of interest resides
+  # Random sample background points from the region(s) on which the species of interest resides
   print(paste0("Sampling background cells for ", SpeciesOfInterest_Names[i]))
   sampleNum <- 100000 # Over-sample to account for the NA's
-  selectReg <- 10000
-  selectFew <- 5000
+  select_trainBg <- nrow(cells_train) # Same number of background points as occurrence points
+  select_evalBg <- nrow(cells_eval)
   
+  
+  # Select background points for training
   set.seed(seedNum)
-  bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
+  cells_train_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
+  cells_train_bg <- cells_train_bg[sample(nrow(cells_train_bg), select_trainBg), ]
+  colnames(cells_train_bg) <- c("decimalLatitude","decimalLongitude")
+  cells_train_bg <- cells_train_bg[, c("decimalLongitude","decimalLatitude")]
   
-  if(SpeciesOfInterest_Names[i] == "Anopheles gambiae" |
-     SpeciesOfInterest_Names[i] == "Anopheles stephensi") {
-    set.seed(seedNum)
-    bg <- bg[sample(nrow(bg), selectFew), ] # Use a fewer 5k bg points to facilitate model fit for low occurrence-points species
-    colnames(bg) <- c("decimalLatitude","decimalLongitude")
-    bg <- bg[, c("decimalLongitude","decimalLatitude")]
-  }
   
-  else {
-    bg <- bg[sample(nrow(bg), selectReg), ]
-    colnames(bg) <- c("decimalLatitude","decimalLongitude")
-    bg <- bg[, c("decimalLongitude","decimalLatitude")]
-  }
+  # select background points for evaluation
+  set.seed(seedNum)
+  cells_eval_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
+  cells_eval_bg <- cells_eval_bg[sample(nrow(cells_eval_bg), select_evalBg), ]
+  colnames(cells_eval_bg) <- c("decimalLatitude","decimalLongitude")
+  cells_eval_bg <- cells_eval_bg[, c("decimalLongitude","decimalLatitude")]
   
-  print(paste0("Training: ", nrow(cells_train), "; Background: ", nrow(bg), "; Evaluation: ",nrow(cells_eval)))
+  
+  print(paste0("Training_Occ: ", nrow(cells_train), "; Training_Bg: ", nrow(cells_train_bg),
+               "; Evaluation_Occ: ",nrow(cells_eval), "; Evaluation_Bg: ", nrow(cells_eval_bg)))
   
   
   # Extract covariates for training points: occurrence and background
@@ -273,14 +274,15 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   colnames(train_occ)[1] <- "Occ[1]_or_Bg[0]"
   colnames(train_occ)[13] <- "dataSplit"
   
-  train_bg <- cbind(c(rep(0, nrow(bg))),
-                    data.frame(raster::extract(predictors, bg)),
-                    bg,
-                    c(rep("Training",nrow(bg))))
+  train_bg <- cbind(c(rep(0, nrow(cells_train_bg))),
+                    data.frame(raster::extract(predictors, cells_train_bg)),
+                    cells_train_bg,
+                    c(rep("Training",nrow(cells_train_bg))))
   colnames(train_bg)[1] <- "Occ[1]_or_Bg[0]"
   colnames(train_bg)[13] <- "dataSplit"
   
   predictors_train_df <- rbind(train_occ, train_bg)
+  
   
   
   # Extract covariates for evaluation points: occurrence and background
@@ -292,8 +294,16 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                     c(rep("Evaluation",nrow(cells_eval))))
   colnames(eval_occ)[1] <- "Occ[1]_or_Bg[0]"
   colnames(eval_occ)[13] <- "dataSplit"
+  
+  eval_bg <- cbind(c(rep(0, nrow(cells_eval_bg))),
+                    data.frame(raster::extract(predictors, cells_eval_bg)),
+                   cells_eval_bg,
+                    c(rep("Evaluation",nrow(cells_eval_bg))))
+  colnames(eval_bg)[1] <- "Occ[1]_or_Bg[0]"
+  colnames(eval_bg)[13] <- "dataSplit"
                                
-  predictors_eval_df <- eval_occ
+  predictors_eval_df <- rbind(eval_occ, eval_bg)
+  
   
   
   # Bind occurrences and background, allocate 1 to occ and 0 to bg, drop NA's
@@ -327,8 +337,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   summaryStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
   summaryStats[[2]][[i]] <- ActivitySeason_Type[[i]]
   summaryStats[[3]][[i]] <- nrow(cells_train)
-  summaryStats[[4]][[i]] <- nrow(bg)
+  summaryStats[[4]][[i]] <- nrow(cells_train_bg)
   summaryStats[[5]][[i]] <- nrow(cells_eval)
+  summaryStats[[6]][[i]] <- nrow(cells_eval_bg)
 }
 
 
@@ -370,9 +381,24 @@ df_yearRound <- df_yearRound[, c(14,11:12,13,1:10)]
 df_photoSeason <- df_photoSeason[, c(14,11:12,13,1:7,10,8:9)]
 df_precipSeason <- df_precipSeason[, c(14,11:12,13,1:7,10,8:9)]
 
+df_yearRound_merge <- df_yearRound
+colnames(df_yearRound_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ[1]_or_Bg[0]","ELEV","EVIM",
+                                  "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
+
+df_photoSeason_merge <- df_yearRound
+colnames(df_photoSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ[1]_or_Bg[0]","ELEV","EVIM",
+                                  "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
+
+df_precipSeason_merge <- df_yearRound
+colnames(df_precipSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ[1]_or_Bg[0]","ELEV","EVIM",
+                                  "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
+
+df_final <- rbind(df_yearRound_merge, df_photoSeason_merge, df_precipSeason_merge)
+
 
 # Output .csv files
 write.csv(summaryStats, file = "Summary Statistics by Species.csv", row.names=FALSE)
+write.csv(df_final, file = "SDM Data.csv", row.names=FALSE)
 write.csv(df_yearRound, file = "SDM Data - Year Round.csv", row.names = FALSE)
 write.csv(df_photoSeason, file = "SDM Data - Photoperiod Activity Season.csv", row.names = FALSE)
 write.csv(df_precipSeason, file = "SDM Data - Precipitation Activity Season.csv", row.names = FALSE)
