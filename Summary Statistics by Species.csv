@@ -1,4 +1,4 @@
-"Species","Activity Season Restriction","Training Occurrences","Training Background","Evaluation Occurrences","Evaluation Background"
+"Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg"
 "Aedes aegypti","None- Year Round",7070,7070,1793,1793
 "Aedes albopictus","Photoperiod",7050,7050,1934,1934
 "Anopheles gambiae","Precipitation",116,116,28,28
