@@ -175,7 +175,7 @@ evaluationList <- c("AedesAegypti_Evaluation",
 
 
 summaryStats <- data.frame(matrix(ncol = 6, nrow=7))
-colnames(summaryStats) <- c("Species","Activity Season Restriction","Training Occurrences","Training Background","Evaluation Occurrences","Evaluation Background")
+colnames(summaryStats) <- c("Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg")
 
 sdmData_yearRound <- list()
 sdmData_photoSeason <- list()
@@ -333,6 +333,7 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   }
   
   
+  
   # Save summary statistics by species
   summaryStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
   summaryStats[[2]][[i]] <- ActivitySeason_Type[[i]]
@@ -394,6 +395,8 @@ colnames(df_precipSeason_merge) <- c("Species","Longitude","Latitude","DataSplit
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
 df_final <- rbind(df_yearRound_merge, df_photoSeason_merge, df_precipSeason_merge)
+
+
 
 
 # Output .csv files
