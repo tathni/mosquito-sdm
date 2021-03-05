@@ -177,6 +177,10 @@ evaluationList <- c("AedesAegypti_Evaluation",
 summaryStats <- data.frame(matrix(ncol = 6, nrow=7))
 colnames(summaryStats) <- c("Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg")
 
+filterStats <- data.frame(matrix(ncol = 7, nrow=7))
+colnames(filterStats) <- c("Species","Activity_Season_Restriction","Raw_GBIF_Occurrences","Landmass_Points","Activity_Season_Points",
+                           "Sampling_Frame_Points","Unique_Points_Final")
+
 sdmData_yearRound <- list()
 sdmData_photoSeason <- list()
 sdmData_precipSeason <- list()
@@ -206,6 +210,8 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   if(SpeciesOfInterest_Names[i] == "Anopheles gambiae") {
     predictorSum <- predictor_sum_precipSeason
     predictors <- predictors_precipSeason }
+  
+  predictorSum_world <- predictor_sum_yearRound
  
   
   # Assign 80% from each species of interest without replacement as training data
@@ -213,11 +219,12 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   species_df <- assign(speciesList[i], filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[i]))
   occGPS_raw <- dplyr::select(species_df, c(species, decimalLongitude, decimalLatitude)) %>% 
     unique
+  raw_gbif_points <- nrow(occGPS_raw)
+  
   q <- round(nrow(occGPS_raw) * 0.8)
   set.seed(seedNum)
   occGPS_train <- assign(trainingList[i], occGPS_raw[sample(nrow(occGPS_raw), q), ])
   occGPS_eval <- assign(evaluationList[i], setdiff(occGPS_raw, occGPS_train))
-  
   
   
   # Isolate long/lat coordinates of occurrence points
@@ -225,16 +232,83 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   occGPS_eval %<>% dplyr::select(decimalLongitude, decimalLatitude)
   
   
-  # Identify raster cells in which training and eval points fall, and back-acquire the coordinates of unique, non-NA cells
-  print(paste0("Isolating training and evaluation cells for ", SpeciesOfInterest_Names[i]))
-  occGPS_train_noNA <- occGPS_train[-c(which(is.na(raster::extract(predictorSum, occGPS_train)))),] 
-  cells_train <- xyFromCell(predictors, cellFromXY(predictors, occGPS_train_noNA) %>% 
+  
+  
+  # Restrict occurrence points to acquire landmass-only points and exclude points in the ocean
+  print(paste0("Isolating training and evaluation cells, landmass restricted, for ", SpeciesOfInterest_Names[i]))
+  remove_df <- c(which(is.na(raster::extract(predictorSum_world, occGPS_train))))
+  if(length(remove_df) > 0) {
+    occGPS_train_noNA <- occGPS_train[-remove_df,]
+  }
+  else {
+    occGPS_train_noNA <- occGPS_train
+  }
+  
+  remove_df <- c(which(is.na(raster::extract(predictorSum_world, occGPS_eval))))
+  if(length(remove_df) > 0) {
+    occGPS_eval_noNA <- occGPS_eval[-remove_df,] 
+  }
+  else {
+    occGPS_eval_noNA <- occGPS_eval
+  }
+  
+  landmass_points <- sum(nrow(occGPS_train_noNA), nrow(occGPS_eval_noNA))
+  
+  
+  # Restrict landmass points to acquire points within the given species' activity season configuration
+  print(paste0("Isolating training and evaluation cells, activity season restricted, for ", SpeciesOfInterest_Names[i]))
+  remove_df <- c(which(is.na(raster::extract(predictorSum, occGPS_train_noNA))))
+  if(length(remove_df) > 0) {
+    occGPS_train_activity_noNA <- occGPS_train_noNA[-remove_df,]
+  }
+  else {
+    occGPS_train_activity_noNA <- occGPS_train_noNA
+  }
+  
+  remove_df <- c(which(is.na(raster::extract(predictorSum, occGPS_eval_noNA))))
+  if(length(remove_df) > 0) {
+    occGPS_eval_activity_noNA <- occGPS_eval_noNA[-remove_df,] 
+  }
+  else {
+    occGPS_eval_activity_noNA <- occGPS_eval_noNA
+  }
+  
+  activity_season_points <- sum(nrow(occGPS_train_activity_noNA), nrow(occGPS_eval_activity_noNA))
+  
+  
+  # Restrict activity season points to acquire points within the given species' background sampling frame
+  print(paste0("Isolating training and evaluation cells, sampling frame restricted, for ", SpeciesOfInterest_Names[i]))
+  remove_df <- c(which(is.na(raster::extract(sampling_maps[[i]], occGPS_train_activity_noNA))))
+  if(length(remove_df) > 0) {
+    occGPS_train_sampframe_noNA <- occGPS_train_activity_noNA[-remove_df,]
+  }
+  else {
+    occGPS_train_sampframe_noNA <- occGPS_train_activity_noNA
+  }
+  
+  remove_df <- c(which(is.na(raster::extract(sampling_maps[[i]], occGPS_eval_activity_noNA))))
+  if(length(remove_df) > 0) {
+    occGPS_eval_sampframe_noNA <- occGPS_eval_activity_noNA[-remove_df,] 
+  }
+  else {
+    occGPS_eval_sampframe_noNA <- occGPS_eval_activity_noNA
+  }
+  
+  sampling_frame_points <- sum(nrow(occGPS_train_sampframe_noNA), nrow(occGPS_eval_sampframe_noNA))
+  
+  
+  # Restrict occurrences to unique, non-NA cells of 1km x 1km, and then back-acquire the centroid (x,y) of the cells
+  cells_train <- xyFromCell(predictors, cellFromXY(predictors, occGPS_train_sampframe_noNA) %>% 
                               unique) %>% as.data.frame()
   colnames(cells_train) <- c("decimalLongitude","decimalLatitude")
-  occGPS_eval_noNA <- occGPS_eval[-c(which(is.na(raster::extract(predictorSum, occGPS_eval)))),] 
-  cells_eval <- xyFromCell(predictors, cellFromXY(predictors, occGPS_eval_noNA) %>% 
+  
+  cells_eval <- xyFromCell(predictors, cellFromXY(predictors, occGPS_eval_sampframe_noNA) %>% 
                              unique) %>% as.data.frame()
   colnames(cells_eval) <- c("decimalLongitude","decimalLatitude")
+  
+  unique_points <- sum(nrow(cells_train), nrow(cells_eval))
+  
+  
   
   
   # Random sample background points from the region(s) on which the species of interest resides
@@ -252,16 +326,17 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   cells_train_bg <- cells_train_bg[, c("decimalLongitude","decimalLatitude")]
   
   
-  # select background points for evaluation
+  # Select background points for evaluation
   set.seed(seedNum)
   cells_eval_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
   cells_eval_bg <- cells_eval_bg[sample(nrow(cells_eval_bg), select_evalBg), ]
   colnames(cells_eval_bg) <- c("decimalLatitude","decimalLongitude")
   cells_eval_bg <- cells_eval_bg[, c("decimalLongitude","decimalLatitude")]
   
-  
   print(paste0("Training_Occ: ", nrow(cells_train), "; Training_Bg: ", nrow(cells_train_bg),
                "; Evaluation_Occ: ",nrow(cells_eval), "; Evaluation_Bg: ", nrow(cells_eval_bg)))
+  
+  
   
   
   # Extract covariates for training points: occurrence and background
@@ -271,14 +346,14 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                      data.frame(raster::extract(predictors, cells_train)),
                      cells_train,
                      c(rep("Training",nrow(cells_train))))
-  colnames(train_occ)[1] <- "Occ[1]_or_Bg[0]"
+  colnames(train_occ)[1] <- "Occ1_or_Bg0"
   colnames(train_occ)[13] <- "dataSplit"
   
   train_bg <- cbind(c(rep(0, nrow(cells_train_bg))),
                     data.frame(raster::extract(predictors, cells_train_bg)),
                     cells_train_bg,
                     c(rep("Training",nrow(cells_train_bg))))
-  colnames(train_bg)[1] <- "Occ[1]_or_Bg[0]"
+  colnames(train_bg)[1] <- "Occ1_or_Bg0"
   colnames(train_bg)[13] <- "dataSplit"
   
   predictors_train_df <- rbind(train_occ, train_bg)
@@ -292,14 +367,14 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                     data.frame(raster::extract(predictors, cells_eval)),
                     cells_eval,
                     c(rep("Evaluation",nrow(cells_eval))))
-  colnames(eval_occ)[1] <- "Occ[1]_or_Bg[0]"
+  colnames(eval_occ)[1] <- "Occ1_or_Bg0"
   colnames(eval_occ)[13] <- "dataSplit"
   
   eval_bg <- cbind(c(rep(0, nrow(cells_eval_bg))),
                     data.frame(raster::extract(predictors, cells_eval_bg)),
                    cells_eval_bg,
                     c(rep("Evaluation",nrow(cells_eval_bg))))
-  colnames(eval_bg)[1] <- "Occ[1]_or_Bg[0]"
+  colnames(eval_bg)[1] <- "Occ1_or_Bg0"
   colnames(eval_bg)[13] <- "dataSplit"
                                
   predictors_eval_df <- rbind(eval_occ, eval_bg)
@@ -341,6 +416,16 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   summaryStats[[4]][[i]] <- nrow(cells_train_bg)
   summaryStats[[5]][[i]] <- nrow(cells_eval)
   summaryStats[[6]][[i]] <- nrow(cells_eval_bg)
+  
+  
+  # Save filter flowchart statistics by species
+  filterStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
+  filterStats[[2]][[i]] <- ActivitySeason_Type[[i]]
+  filterStats[[3]][[i]] <- raw_gbif_points
+  filterStats[[4]][[i]] <- landmass_points
+  filterStats[[5]][[i]] <- activity_season_points
+  filterStats[[6]][[i]] <- sampling_frame_points
+  filterStats[[7]][[i]] <- unique_points
 }
 
 
@@ -383,15 +468,15 @@ df_photoSeason <- df_photoSeason[, c(14,11:12,13,1:7,10,8:9)]
 df_precipSeason <- df_precipSeason[, c(14,11:12,13,1:7,10,8:9)]
 
 df_yearRound_merge <- df_yearRound
-colnames(df_yearRound_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ[1]_or_Bg[0]","ELEV","EVIM",
+colnames(df_yearRound_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
-df_photoSeason_merge <- df_yearRound
-colnames(df_photoSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ[1]_or_Bg[0]","ELEV","EVIM",
+df_photoSeason_merge <- df_photoSeason
+colnames(df_photoSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
-df_precipSeason_merge <- df_yearRound
-colnames(df_precipSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ[1]_or_Bg[0]","ELEV","EVIM",
+df_precipSeason_merge <- df_precipSeason
+colnames(df_precipSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
 df_final <- rbind(df_yearRound_merge, df_photoSeason_merge, df_precipSeason_merge)
@@ -401,6 +486,7 @@ df_final <- rbind(df_yearRound_merge, df_photoSeason_merge, df_precipSeason_merg
 
 # Output .csv files
 write.csv(summaryStats, file = "Summary Statistics by Species.csv", row.names=FALSE)
+write.csv(filterStats, file = "Filter Statistics by Species.csv", row.names=FALSE)
 write.csv(df_final, file = "SDM Data.csv", row.names=FALSE)
 write.csv(df_yearRound, file = "SDM Data - Year Round.csv", row.names = FALSE)
 write.csv(df_photoSeason, file = "SDM Data - Photoperiod Activity Season.csv", row.names = FALSE)
