@@ -66,14 +66,25 @@ predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
 predictors_photoSeason <- predictors_preStack[c(1:8,11)] %>% stack()
 predictors_precipSeason <- predictors_preStack[c(1:6,9:11)] %>% stack()
 
-predictor_sum_yearRound <- sum(predictors_yearRound) %>%
-  reclassify(cbind(-Inf, 0, NA), right=T)
 
-predictor_sum_photoSeason <- sum(predictors_photoSeason) %>%
-  reclassify(cbind(-Inf, 0, NA), right=T)
+predictor_sum_yearRound <- raster("Predictor_Sum_YearRound.tif")
+predictor_sum_photoSeason <- raster("Predictor_Sum_PhotoSeason.tif")
+predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
 
-predictor_sum_precipSeason <- sum(predictors_precipSeason) %>%
-  reclassify(cbind(-Inf, 0, NA), right=T)
+
+# predictor_sum_yearRound <- sum(predictors_yearRound) %>%
+#   reclassify(cbind(-Inf, 0, NA), right=T)
+# 
+# predictor_sum_photoSeason <- sum(predictors_photoSeason) %>%
+#   reclassify(cbind(-Inf, 0, NA), right=T)
+# 
+# predictor_sum_precipSeason <- sum(predictors_precipSeason) %>%
+#   reclassify(cbind(-Inf, 0, NA), right=T)
+
+# writeRaster(predictor_sum_yearRound, filename = "Predictor_Sum_YearRound.tif", format = "GTiff", overwrite=T)
+# writeRaster(predictor_sum_photoSeason, filename = "Predictor_Sum_PhotoSeason.tif", format = "GTiff", overwrite=T)
+# writeRaster(predictor_sum_precipSeason, filename = "Predictor_Sum_PrecipSeason.tif", format = "GTiff", overwrite=T)
+
 
 
 
@@ -239,16 +250,14 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   remove_df <- c(which(is.na(raster::extract(predictorSum_world, occGPS_train))))
   if(length(remove_df) > 0) {
     occGPS_train_noNA <- occGPS_train[-remove_df,]
-  }
-  else {
+  } else {
     occGPS_train_noNA <- occGPS_train
   }
   
   remove_df <- c(which(is.na(raster::extract(predictorSum_world, occGPS_eval))))
   if(length(remove_df) > 0) {
     occGPS_eval_noNA <- occGPS_eval[-remove_df,] 
-  }
-  else {
+  } else {
     occGPS_eval_noNA <- occGPS_eval
   }
   
@@ -260,16 +269,14 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   remove_df <- c(which(is.na(raster::extract(predictorSum, occGPS_train_noNA))))
   if(length(remove_df) > 0) {
     occGPS_train_activity_noNA <- occGPS_train_noNA[-remove_df,]
-  }
-  else {
+  } else {
     occGPS_train_activity_noNA <- occGPS_train_noNA
   }
   
   remove_df <- c(which(is.na(raster::extract(predictorSum, occGPS_eval_noNA))))
   if(length(remove_df) > 0) {
     occGPS_eval_activity_noNA <- occGPS_eval_noNA[-remove_df,] 
-  }
-  else {
+  } else {
     occGPS_eval_activity_noNA <- occGPS_eval_noNA
   }
   
@@ -281,16 +288,14 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   remove_df <- c(which(is.na(raster::extract(sampling_maps[[i]], occGPS_train_activity_noNA))))
   if(length(remove_df) > 0) {
     occGPS_train_sampframe_noNA <- occGPS_train_activity_noNA[-remove_df,]
-  }
-  else {
+  } else {
     occGPS_train_sampframe_noNA <- occGPS_train_activity_noNA
   }
   
   remove_df <- c(which(is.na(raster::extract(sampling_maps[[i]], occGPS_eval_activity_noNA))))
   if(length(remove_df) > 0) {
     occGPS_eval_sampframe_noNA <- occGPS_eval_activity_noNA[-remove_df,] 
-  }
-  else {
+  } else {
     occGPS_eval_sampframe_noNA <- occGPS_eval_activity_noNA
   }
   
@@ -320,16 +325,27 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   # Select background points for training
   set.seed(seedNum)
-  cells_train_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
-  cells_train_bg <- cells_train_bg[sample(nrow(cells_train_bg), select_trainBg), ]
+  cells_train_bg_raw <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
+  cells_train_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_train_bg_raw)),
+                                     cells_train_bg_raw) %>%
+    .[complete.cases(.), ] %>%
+    .[sample(nrow(.), select_trainBg),]  # Workflow for selecting non-NAs since the randomPoints() function does not drop NA's
+  cells_train_bg <- cells_train_bg_predictors[,c(10:11)]
+  
+
   colnames(cells_train_bg) <- c("decimalLatitude","decimalLongitude")
   cells_train_bg <- cells_train_bg[, c("decimalLongitude","decimalLatitude")]
   
   
   # Select background points for evaluation
   set.seed(seedNum)
-  cells_eval_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
-  cells_eval_bg <- cells_eval_bg[sample(nrow(cells_eval_bg), select_evalBg), ]
+  cells_eval_bg_raw <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
+  cells_eval_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_eval_bg_raw)),
+                                    cells_eval_bg_raw) %>%
+    .[complete.cases(.), ] %>%
+    .[sample(nrow(.), select_evalBg),]
+  cells_eval_bg <- cells_eval_bg_predictors[,c(10:11)]
+  
   colnames(cells_eval_bg) <- c("decimalLatitude","decimalLongitude")
   cells_eval_bg <- cells_eval_bg[, c("decimalLongitude","decimalLatitude")]
   
@@ -382,8 +398,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   # Bind occurrences and background, allocate 1 to occ and 0 to bg, drop NA's
-  sdmData <- rbind(predictors_train_df, predictors_eval_df)
-  sdmData <- sdmData[complete.cases(sdmData), ] %>%
+  # Complete cases should remove nothing; this is a safety check to ensure that sdmData_raw = sdmData
+  sdmData_raw <- rbind(predictors_train_df, predictors_eval_df)
+  sdmData <- sdmData_raw[complete.cases(sdmData_raw), ] %>%  
     mutate(species = SpeciesOfInterest_Names[i])
   
   
