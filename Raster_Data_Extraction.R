@@ -303,105 +303,117 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   # Restrict occurrences to unique, non-NA cells of 1km x 1km, and then back-acquire the centroid (x,y) of the cells
+  print(paste0("Isolating training and evaluation cells, unique and non-NA, for ", SpeciesOfInterest_Names[i]))
   cells_train <- xyFromCell(predictors, cellFromXY(predictors, occGPS_train_sampframe_noNA) %>% 
                               unique) %>% as.data.frame()
-  colnames(cells_train) <- c("decimalLongitude","decimalLatitude")
   
   cells_eval <- xyFromCell(predictors, cellFromXY(predictors, occGPS_eval_sampframe_noNA) %>% 
                              unique) %>% as.data.frame()
-  colnames(cells_eval) <- c("decimalLongitude","decimalLatitude")
   
   unique_points <- sum(nrow(cells_train), nrow(cells_eval))
   
   
   
   
-  # Random sample background points from the region(s) on which the species of interest resides
-  print(paste0("Sampling background cells for ", SpeciesOfInterest_Names[i]))
-  sampleNum <- 100000 # Over-sample to account for the NA's
-  select_trainBg <- nrow(cells_train) # Same number of background points as occurrence points
-  select_evalBg <- nrow(cells_eval)
   
-  
-  # Select background points for training
-  set.seed(seedNum)
-  cells_train_bg_raw <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
-  cells_train_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_train_bg_raw)),
-                                     cells_train_bg_raw) %>%
-    .[complete.cases(.), ] %>%
-    .[sample(nrow(.), select_trainBg),]  # Workflow for selecting non-NAs since the randomPoints() function does not drop NA's
-  cells_train_bg <- cells_train_bg_predictors[,c(10:11)]
-  
-
-  colnames(cells_train_bg) <- c("decimalLatitude","decimalLongitude")
-  cells_train_bg <- cells_train_bg[, c("decimalLongitude","decimalLatitude")]
-  
-  
-  # Select background points for evaluation
-  set.seed(seedNum)
-  cells_eval_bg_raw <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
-  cells_eval_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_eval_bg_raw)),
-                                    cells_eval_bg_raw) %>%
-    .[complete.cases(.), ] %>%
-    .[sample(nrow(.), select_evalBg),]
-  cells_eval_bg <- cells_eval_bg_predictors[,c(10:11)]
-  
-  colnames(cells_eval_bg) <- c("decimalLatitude","decimalLongitude")
-  cells_eval_bg <- cells_eval_bg[, c("decimalLongitude","decimalLatitude")]
-  
-  print(paste0("Training_Occ: ", nrow(cells_train), "; Training_Bg: ", nrow(cells_train_bg),
-               "; Evaluation_Occ: ",nrow(cells_eval), "; Evaluation_Bg: ", nrow(cells_eval_bg)))
-  
-  
-  
-  
-  # Extract covariates for training points: occurrence and background
-  print(paste0("Extracting covariate info from training points for ", SpeciesOfInterest_Names[i]))
-  
+  # Extract covariates for training points occurrences
+  print(paste0("Extracting covariate info from training occurrences for ", SpeciesOfInterest_Names[i]))
   train_occ <- cbind(c(rep(1, nrow(cells_train))),
                      data.frame(raster::extract(predictors, cells_train)),
                      cells_train,
                      c(rep("Training",nrow(cells_train))))
   colnames(train_occ)[1] <- "Occ1_or_Bg0"
+  colnames(train_occ)[11] <- "decimalLatitude"
+  colnames(train_occ)[12] <- "decimalLongitude"
   colnames(train_occ)[13] <- "dataSplit"
-  
-  train_bg <- cbind(c(rep(0, nrow(cells_train_bg))),
-                    data.frame(raster::extract(predictors, cells_train_bg)),
-                    cells_train_bg,
-                    c(rep("Training",nrow(cells_train_bg))))
-  colnames(train_bg)[1] <- "Occ1_or_Bg0"
-  colnames(train_bg)[13] <- "dataSplit"
-  
-  predictors_train_df <- rbind(train_occ, train_bg)
+  train_occ <- train_occ[,c(12,11,13,1:10)]
   
   
-  
-  # Extract covariates for evaluation points: occurrence and background
-  print(paste0("Extracting covariate info from evaluation points for ", SpeciesOfInterest_Names[i]))
-  
+  # Extract covariates for evaluation points occurrences
+  print(paste0("Extracting covariate info from evaluation occurrences for ", SpeciesOfInterest_Names[i]))
   eval_occ <- cbind(c(rep(1, nrow(cells_eval))),
                     data.frame(raster::extract(predictors, cells_eval)),
                     cells_eval,
                     c(rep("Evaluation",nrow(cells_eval))))
   colnames(eval_occ)[1] <- "Occ1_or_Bg0"
+  colnames(eval_occ)[11] <- "decimalLatitude"
+  colnames(eval_occ)[12] <- "decimalLongitude"
   colnames(eval_occ)[13] <- "dataSplit"
+  eval_occ <- eval_occ[,c(12,11,13,1:10)]
   
-  eval_bg <- cbind(c(rep(0, nrow(cells_eval_bg))),
-                    data.frame(raster::extract(predictors, cells_eval_bg)),
-                   cells_eval_bg,
-                    c(rep("Evaluation",nrow(cells_eval_bg))))
+  
+  
+  
+  # Random sample background points from the region(s) on which the species of interest resides (i.e., sampling map)
+  print(paste0("Sampling background cells for ", SpeciesOfInterest_Names[i]))
+  sampleNum <- 100000 # Over-sample to account for the NA's
+  select_trainBg <- nrow(cells_train) # Same number of background points as occurrence points
+  select_evalBg <- nrow(cells_eval)
+  
+  set.seed(seedNum)
+  cells_train_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
+  cells_eval_bg <- randomPoints(sampling_maps[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
+  
+  
+  
+  # Extract covariates for training points background
+  print(paste0("Extracting covariate info from training background for ", SpeciesOfInterest_Names[i]))
+  set.seed(seedNum)
+  cells_train_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_train_bg)),
+                                     cells_train_bg) %>%
+    .[complete.cases(.), ] %>%
+    .[sample(nrow(.), select_trainBg),]  # Workflow for selecting non-NAs since the randomPoints() function does not drop NA's
+  train_bg <- cbind(c(rep(0, nrow(cells_train_bg_predictors))),
+                          cells_train_bg_predictors,
+                          c(rep("Training", nrow(cells_train_bg_predictors))))
+
+  colnames(train_bg)[1] <- "Occ1_or_Bg0"
+  colnames(train_bg)[11] <- "decimalLatitude"
+  colnames(train_bg)[12] <- "decimalLongitude"
+  colnames(train_bg)[13] <- "dataSplit"
+  train_bg <- train_bg[,c(12,11,13,1:10)]
+
+  
+  
+  # Extract covariates for evaluation points background
+  print(paste0("Extracting covariate info from evaluation background for ", SpeciesOfInterest_Names[i]))
+  set.seed(seedNum)
+  cells_eval_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_eval_bg)),
+                                    cells_eval_bg) %>%
+    .[complete.cases(.), ] %>%
+    .[sample(nrow(.), select_evalBg),]
+  eval_bg <- cbind(c(rep(0, nrow(cells_eval_bg_predictors))),
+                         cells_eval_bg_predictors,
+                         c(rep("Evaluation", nrow(cells_eval_bg_predictors))))
+                 
   colnames(eval_bg)[1] <- "Occ1_or_Bg0"
+  colnames(eval_bg)[11] <- "decimalLatitude"
+  colnames(eval_bg)[12] <- "decimalLongitude"
   colnames(eval_bg)[13] <- "dataSplit"
-                               
+  eval_bg <- eval_bg[,c(12,11,13,1:10)]
+  
+
+  
+  print(paste0("Training_Occ: ", nrow(train_occ), "; Training_Bg: ", nrow(train_bg),
+               "; Evaluation_Occ: ",nrow(eval_occ), "; Evaluation_Bg: ", nrow(eval_bg)))
+  
+  
+  
+  
+  # Merge training and occurrences for both the training set and evaluation set
+  print(paste0("Merging covariate info from training points for ", SpeciesOfInterest_Names[i]))
+  predictors_train_df <- rbind(train_occ, train_bg)
   predictors_eval_df <- rbind(eval_occ, eval_bg)
   
+
   
-  
-  # Bind occurrences and background, allocate 1 to occ and 0 to bg, drop NA's
+  # Bind the training and background datasets into one
   # Complete cases should remove nothing; this is a safety check to ensure that sdmData_raw = sdmData
   sdmData_raw <- rbind(predictors_train_df, predictors_eval_df)
   sdmData <- sdmData_raw[complete.cases(sdmData_raw), ] %>%  
     mutate(species = SpeciesOfInterest_Names[i])
+  sdmData <- sdmData[,c(14,1:13)]
+  print(paste0("SDM Data Raw: ", nrow(sdmData_raw), "; SDM Data: ", nrow(sdmData)))
   
   
   # Save the data for each species into a list, to compile into a single csv below
@@ -429,10 +441,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   # Save summary statistics by species
   summaryStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
   summaryStats[[2]][[i]] <- ActivitySeason_Type[[i]]
-  summaryStats[[3]][[i]] <- nrow(cells_train)
-  summaryStats[[4]][[i]] <- nrow(cells_train_bg)
-  summaryStats[[5]][[i]] <- nrow(cells_eval)
-  summaryStats[[6]][[i]] <- nrow(cells_eval_bg)
+  summaryStats[[3]][[i]] <- nrow(train_occ)
+  summaryStats[[4]][[i]] <- nrow(train_bg)
+  summaryStats[[5]][[i]] <- nrow(eval_occ)
+  summaryStats[[6]][[i]] <- nrow(eval_bg)
   
   
   # Save filter flowchart statistics by species
@@ -479,24 +491,19 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
 }
 
 
-# Re-order the columns of the dataframe before exporting the .csv
-df_yearRound <- df_yearRound[, c(14,11:12,13,1:10)]
-df_photoSeason <- df_photoSeason[, c(14,11:12,13,1:7,10,8:9)]
-df_precipSeason <- df_precipSeason[, c(14,11:12,13,1:7,10,8:9)]
-
-df_yearRound_merge <- df_yearRound
-colnames(df_yearRound_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
+# Rename the columns of the dataframe and merge before exporting the .csv
+# {PhotoASTM, PrecipASTM, and TAM} = TAM in the .csv
+# {PhotoASTSD, PrecipASTSD, and TASD} = TASD in the .csv
+colnames(df_yearRound) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
-df_photoSeason_merge <- df_photoSeason
-colnames(df_photoSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
+colnames(df_photoSeason) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
-df_precipSeason_merge <- df_precipSeason
-colnames(df_precipSeason_merge) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
+colnames(df_precipSeason) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HP","PDQ","PWQ","TAM","TASD")
 
-df_final <- rbind(df_yearRound_merge, df_photoSeason_merge, df_precipSeason_merge)
+df_final <- rbind(df_yearRound, df_photoSeason, df_precipSeason)
 
 
 
