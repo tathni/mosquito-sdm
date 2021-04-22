@@ -128,7 +128,7 @@ ActivitySeason_Type <- c("None- Year Round",
 
 
 
-# ### CREATE BIAS MASK FOR SAMPLING ###
+### CREATE BIAS MASK FOR SAMPLING ###
 # biasMask_1 <- sampling_ranges[[1]]
 # biasMask_1[!is.na(biasMask_1)] <- 0
 # biasMask_2 <- sampling_ranges[[2]]
@@ -330,20 +330,20 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   ### FOURTH LEVEL OF RESTRICTION: UNIQUE, NON-NA ###
   # Restrict occurrences to unique, non-NA cells of 1km x 1km, and then back-acquire the centroid (x,y) of the cells
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Isolating training and evaluation cells, unique and non-NA"))
-  cells_unique <- xyFromCell(predictors, cellFromXY(predictors, occGPS_samprange_noNA) %>% 
-                              unique) %>% as.data.frame()
+  cell_centroids_unique <- xyFromCell(predictors, cellFromXY(predictors, occGPS_samprange_noNA) %>% 
+                                unique) %>% as.data.frame()
   
-  unique_points <- nrow(cells_unique)
+  unique_points <- nrow(cell_centroids_unique)
   
   
   
   ### TRAINING-EVALUATION SPLIT ###
   # Assign 80% of all cells without replacement as training data
   # Set aside 20% for evaluation
-  train_ratio <- round(nrow(cells_unique) * 0.8)
+  train_ratio <- round(nrow(cell_centroids_unique) * 0.8)
   set.seed(seedNum)
-  cells_train <- assign(trainingList[i], cells_unique[sample(nrow(cells_unique), train_ratio), ])
-  cells_eval <- assign(evaluationList[i], setdiff(cells_unique, cells_train))
+  cells_train <- assign(trainingList[i], cell_centroids_unique[sample(nrow(cell_centroids_unique), train_ratio), ])
+  cells_eval <- assign(evaluationList[i], setdiff(cell_centroids_unique, cells_train))
   
 
   
@@ -355,10 +355,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                      cells_train,
                      c(rep("Training",nrow(cells_train))))
   colnames(train_occ)[1] <- "Occ1_or_Bg0"
-  colnames(train_occ)[11] <- "decimalLatitude"
-  colnames(train_occ)[12] <- "decimalLongitude"
+  colnames(train_occ)[11] <- "decimalLongitude"
+  colnames(train_occ)[12] <- "decimalLatitude"
   colnames(train_occ)[13] <- "dataSplit"
-  train_occ <- train_occ[,c(12,11,13,1:10)]
+  train_occ <- train_occ[,c(11:13,1:10)]
   
   # Extract covariates for evaluation points occurrences
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting covariate info from evaluation occurrences"))
@@ -367,10 +367,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                     cells_eval,
                     c(rep("Evaluation",nrow(cells_eval))))
   colnames(eval_occ)[1] <- "Occ1_or_Bg0"
-  colnames(eval_occ)[11] <- "decimalLatitude"
-  colnames(eval_occ)[12] <- "decimalLongitude"
+  colnames(eval_occ)[11] <- "decimalLongitude"
+  colnames(eval_occ)[12] <- "decimalLatitude"
   colnames(eval_occ)[13] <- "dataSplit"
-  eval_occ <- eval_occ[,c(12,11,13,1:10)]
+  eval_occ <- eval_occ[,c(11:13,1:10)]
   
   
   
@@ -407,9 +407,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   select_evalBg <- nrow(cells_eval)
   
   memory.limit(size=56000)
-  cells_train_bg <- enmSdm::sampleRast(mosq_bias, n = select_trainBg, replace = T, prob = T) %>%
+  cells_train_bg <- enmSdm::sampleRast(mosq_bias, n = select_trainBg, replace = F, prob = T) %>%
     as.data.frame()
-  cells_eval_bg <- enmSdm::sampleRast(mosq_bias, n = select_evalBg, replace = T, prob = T) %>%
+  cells_eval_bg <- enmSdm::sampleRast(mosq_bias, n = select_evalBg, replace = F, prob = T) %>%
     as.data.frame()
   
   
@@ -470,10 +470,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                           c(rep("Training", nrow(cells_train_bg_predictors))))
 
   colnames(train_bg)[1] <- "Occ1_or_Bg0"
-  colnames(train_bg)[11] <- "decimalLatitude"
-  colnames(train_bg)[12] <- "decimalLongitude"
+  colnames(train_bg)[11] <- "decimalLongitude"
+  colnames(train_bg)[12] <- "decimalLatitude"
   colnames(train_bg)[13] <- "dataSplit"
-  train_bg <- train_bg[,c(12,11,13,1:10)]
+  train_bg <- train_bg[,c(11:13,1:10)]
 
   
   # Extract covariates for evaluation points background
@@ -486,10 +486,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
                          c(rep("Evaluation", nrow(cells_eval_bg_predictors))))
                  
   colnames(eval_bg)[1] <- "Occ1_or_Bg0"
-  colnames(eval_bg)[11] <- "decimalLatitude"
-  colnames(eval_bg)[12] <- "decimalLongitude"
+  colnames(eval_bg)[11] <- "decimalLongitude"
+  colnames(eval_bg)[12] <- "decimalLatitude"
   colnames(eval_bg)[13] <- "dataSplit"
-  eval_bg <- eval_bg[,c(12,11,13,1:10)]
+  eval_bg <- eval_bg[,c(11:13,1:10)]
   
 
   print(paste0("Training_Occ: ", nrow(train_occ), "; Training_Bg: ", nrow(train_bg),
