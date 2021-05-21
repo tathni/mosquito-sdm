@@ -1,6 +1,6 @@
 # This script cleans the raw GBIF, Atlas of Living Australia (ALA), and Sinka species occurrence datasets before modeling
 
-# Setup
+### SETUP ###
 library(dplyr)
 library(magrittr)
 setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM MaxEnt Mechanistic/")
@@ -16,14 +16,9 @@ decimalNums <- function(x) {
 }
 
 
-# Read in data from Culicoidea superfamily (Culicidae, Chaoboridae, Corethrellidae, and Dixidae) for background bias of mosquito sampling effort
-Culicidae_Raw <- read.csv("GBIF Datasets Raw/Culicidae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
-Chaoboridae_Raw <- read.csv("GBIF Datasets Raw/Chaoboridae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
-Corethrellidae_Raw <- read.csv("GBIF Datasets Raw/Corethrellidae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
-Dixidae_Raw <- read.csv("GBIF Datasets Raw/Dixidae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
-Background_All <- rbind(Culicidae_Raw, Chaoboridae_Raw, Corethrellidae_Raw, Dixidae_Raw)
 
 
+### SPECIES OF INTEREST CLEANING ###
 # Read in mosquito species of interest datasets (GBIF, Atlas of Living Australia, and Sinka, all of which have distinct occurrences)
 Mosquitoes_SpeciesOfInterest_Raw <- rbind(
   read.csv("GBIF Datasets Raw/AedesAegypti_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
@@ -39,64 +34,39 @@ Mosquitoes_AtlasAustralia_Raw <- read.csv("GBIF Datasets Raw/CulexAnnulirostris_
 Mosquitoes_Sinka_Raw <- read.csv("GBIF Datasets Raw/AnophelesStephensi_Sinka2020.csv", sep = ",", header = T, stringsAsFactors = F)
 
 
-
-# Filter background from 2000-2019, and by <= 1000m uncertainty or >= 2 decimal points for lat/long reporting precision uncertainty
-Background_All %<>%
-  filter(!is.na(decimalLongitude),
-         !is.na(decimalLatitude),
-         basisOfRecord != "FOSSIL_SPECIMEN",
-         basisOfRecord != "LITERATURE",
-         basisOfRecord != "UNKNOWN",
-         species != "",
-         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000,
-         year >= 2000 & year <= 2019) %>%
-  dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy, rowNum)
-# Assign unique "identifiedBy" ID for NAs and blanks to prevent unnecessary filtering of duplicates when R perceives NA == NA
-Background_All$identifiedBy[Background_All$identifiedBy == ""] <- sample(1000000,  
-                                                                         size = sum(Background_All$identifiedBy == ""),
-                                                                         replace = TRUE)
-Background_All$identifiedBy[is.na(Background_All$identifiedBy)] <- sample(1000000,
-                                                                          size = sum(is.na(Background_All$identifiedBy)),
-                                                                          replace = TRUE)
-names(Background_All)[names(Background_All) == "countryCode"] <- "country"
-
-indexRows <- list()
-counter <- 1
-for(i in 1:nrow(Background_All)) {
-  if(decimalNums(Background_All$decimalLongitude[[i]]) < 2 &
-     decimalNums(Background_All$decimalLatitude[[i]]) < 2) {
-    indexRows[[counter]] <- i
-    counter <- counter+1
-  }
-}
-Background_All <- Background_All[!Background_All$rowNum %in% indexRows, ] %>%
-  dplyr::select(-rowNum)
+# Create dataframe shell to house filter statistics by species
+filterStats_pre <- data.frame(matrix(ncol = 7, nrow=8))
+colnames(filterStats_pre) <- c("Species","Raw_GBIF_Occurrences","Non_Fossil_BOR","Non_Unknown_BOR",
+                               "Year_Range","Coord_Uncertainty_Reported","Coord_Uncertainty_DecPlace")
 
 
 
 # Filter species of interest from 2000-2019, and by <= 1000m uncertainty or >= 2 decimal points for lat/long reporting precision uncertainty
 Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest_Raw %>%
-  filter(!species == "Culex annulirostris",
-         !is.na(decimalLongitude),
-         !is.na(decimalLatitude),
-         basisOfRecord != "FOSSIL_SPECIMEN",
-         basisOfRecord != "LITERATURE",
-         basisOfRecord != "UNKNOWN",
-         species != "",
-         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000,
-         year >= 2000 & year <= 2019) %>%
+  filter(!species == "",
+         !species == "Culex annulirostris",
+         !is.na(decimalLongitude), !is.na(decimalLatitude))
+soi_raw <- Mosquitoes_SpeciesOfInterest  # At each step of the filtering, save a copy of the data for plotting/metrics
+
+Mosquitoes_SpeciesOfInterest %<>%
+  filter(basisOfRecord != "FOSSIL_SPECIMEN")
+soi_nonfossil_bor <- Mosquitoes_SpeciesOfInterest
+
+Mosquitoes_SpeciesOfInterest %<>%
+  filter(basisOfRecord != "UNKNOWN")
+soi_nonunknown_bor <- Mosquitoes_SpeciesOfInterest
+
+Mosquitoes_SpeciesOfInterest %<>%
+  filter(year >= 2000 & year <= 2019)
+soi_yearrange <- Mosquitoes_SpeciesOfInterest
+
+Mosquitoes_SpeciesOfInterest %<>%
+  filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000)
+soi_coord_reported <- Mosquitoes_SpeciesOfInterest
+
+Mosquitoes_SpeciesOfInterest %<>%
   dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy, rowNum)
-# Assign unique "identifiedBy" ID for NAs and blanks to prevent unnecessary filtering of duplicates when R perceives NA == NA
-Mosquitoes_SpeciesOfInterest$identifiedBy[Mosquitoes_SpeciesOfInterest$identifiedBy == ""] <-
-  sample(1000000,
-         size = sum(Mosquitoes_SpeciesOfInterest$identifiedBy == ""),
-         replace = TRUE)
-Mosquitoes_SpeciesOfInterest$identifiedBy[is.na(Mosquitoes_SpeciesOfInterest$identifiedBy)] <-
-  sample(1000000,
-         size = sum(Mosquitoes_SpeciesOfInterest$identifiedBy == ""),
-         replace = TRUE)
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, rowNum)
 names(Mosquitoes_SpeciesOfInterest)[names(Mosquitoes_SpeciesOfInterest) == "countryCode"] <- "country"
 
 indexRows <- list()
@@ -110,33 +80,38 @@ for(i in 1:nrow(Mosquitoes_SpeciesOfInterest)) {
 }
 Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest[!Mosquitoes_SpeciesOfInterest$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
+soi_coord_decplace <- Mosquitoes_SpeciesOfInterest
 
 
 
 
 # Clean the GBIF subset dataset for Culex annulirostris
-# Exceptions allowed for small sample size: coordinateUncertainty threshold expanded to <10,000, year is.na(), year range extended to (1970,2021)
+# Exceptions allowed for small n: coordinateUncertainty threshold expanded to <10,000, year range extended to (1970-2021)
 Mosquitoes_GBIFAnnulirostris <- Mosquitoes_SpeciesOfInterest_Raw %>%
   filter(species == "Culex annulirostris",
-         !is.na(decimalLongitude),
-         !is.na(decimalLatitude),
-         basisOfRecord != "FOSSIL_SPECIMEN",
-         basisOfRecord != "LITERATURE",
-         basisOfRecord != "UNKNOWN",
-         species != "",
-         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 10000,
-         year >= 1970 & year <= 2021) %>%
+         !species == "",
+         !is.na(decimalLongitude), !is.na(decimalLatitude))
+annuli_gbif_raw <- Mosquitoes_GBIFAnnulirostris  # At each step of the filtering, save a copy of the data for plotting/metrics
+
+Mosquitoes_GBIFAnnulirostris %<>%
+  filter(basisOfRecord != "FOSSIL_SPECIMEN")
+annuli_gbif_nonfossil_bor <- Mosquitoes_GBIFAnnulirostris
+
+Mosquitoes_GBIFAnnulirostris %<>%
+  filter(basisOfRecord != "UNKNOWN")
+annuli_gbif_nonunknown_bor <- Mosquitoes_GBIFAnnulirostris
+
+Mosquitoes_GBIFAnnulirostris %<>%
+  filter(year >= 1970 & year <= 2021)
+annuli_gbif_yearrange <- Mosquitoes_GBIFAnnulirostris
+
+Mosquitoes_GBIFAnnulirostris %<>%
+  filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 10000)
+annuli_gbif_coord_reported <- Mosquitoes_GBIFAnnulirostris
+
+Mosquitoes_GBIFAnnulirostris %<>%
   dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, identifiedBy, rowNum)
-# Assign unique "identifiedBy" ID for NAs and blanks to prevent unnecessary filtering of duplicates when R perceives NA == NA
-Mosquitoes_GBIFAnnulirostris$identifiedBy[Mosquitoes_GBIFAnnulirostris$identifiedBy == ""] <-
-  sample(1000000,
-         size = sum(Mosquitoes_GBIFAnnulirostris$identifiedBy == ""),
-         replace = TRUE)
-Mosquitoes_GBIFAnnulirostris$identifiedBy[is.na(Mosquitoes_GBIFAnnulirostris$identifiedBy)] <-
-  sample(1000000,
-         size = sum(Mosquitoes_GBIFAnnulirostris$identifiedBy == ""),
-         replace = TRUE)
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, rowNum)
 names(Mosquitoes_GBIFAnnulirostris)[names(Mosquitoes_GBIFAnnulirostris) == "countryCode"] <- "country"
 
 indexRows <- list()
@@ -150,33 +125,38 @@ for(i in 1:nrow(Mosquitoes_GBIFAnnulirostris)) {
 }
 Mosquitoes_GBIFAnnulirostris <- Mosquitoes_GBIFAnnulirostris[!Mosquitoes_GBIFAnnulirostris$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
+annuli_gbif_coord_decplace <- Mosquitoes_GBIFAnnulirostris
 
 
 
 
 # Clean the Atlas of Living Australia dataset for Culex annulirostris
-# Exceptions allowed for small sample size: coordinateUncertainty threshold expanded to <10,000, year is.na(), year range extended to (1970,2021)
+# Exceptions allowed for small n: coordinateUncertainty threshold expanded to <10,000, year range extended to (1970-2021)
 Mosquitoes_AtlasAustralia <- Mosquitoes_AtlasAustralia_Raw %>%
-  filter(!is.na(decimalLongitude),
-         !is.na(decimalLatitude),
-         basisOfRecord != "FOSSIL_SPECIMEN",
-         basisOfRecord != "LITERATURE",
-         basisOfRecord != "UNKNOWN",
-         species != "",
-         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 10000,
-         year >= 1970 & year <= 2021) %>%
+  filter(!species == "",
+         !is.na(decimalLongitude), !is.na(decimalLatitude))
+annuli_ala_raw <- Mosquitoes_AtlasAustralia
+
+Mosquitoes_AtlasAustralia %<>%
+  filter(basisOfRecord != "FOSSIL_SPECIMEN")
+annuli_ala_nonfossil_bor <- Mosquitoes_AtlasAustralia
+
+Mosquitoes_AtlasAustralia %<>%
+  filter(basisOfRecord != "UNKNOWN")
+annuli_ala_nonunknown_bor <- Mosquitoes_AtlasAustralia
+
+Mosquitoes_AtlasAustralia %<>%
+  filter(year >= 1970 & year <= 2021)
+annuli_ala_yearrange <- Mosquitoes_AtlasAustralia
+
+Mosquitoes_AtlasAustralia %<>%
+  filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 10000)
+annuli_ala_coord_reported <- Mosquitoes_AtlasAustralia
+
+Mosquitoes_AtlasAustralia %<>%
   dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, year, month, day, identifiedBy, rowNum) %>%
+  dplyr::select(species, decimalLongitude, decimalLatitude, year, month, day, rowNum) %>%
   dplyr::mutate(country = "AU")
-# Assign unique "identifiedBy" ID for NAs and blanks to prevent unnecessary filtering of duplicates when R perceives NA == NA
-Mosquitoes_AtlasAustralia$identifiedBy[Mosquitoes_AtlasAustralia$identifiedBy == ""] <-
-  sample(1000000,
-         size = sum(Mosquitoes_AtlasAustralia$identifiedBy == ""),
-         replace = TRUE)
-Mosquitoes_AtlasAustralia$identifiedBy[is.na(Mosquitoes_AtlasAustralia$identifiedBy)] <-
-  sample(1000000,
-         size = sum(is.na(Mosquitoes_AtlasAustralia$identifiedBy)),
-         replace = TRUE)
 
 indexRows <- list()
 counter <- 1
@@ -189,7 +169,9 @@ for(i in 1:nrow(Mosquitoes_AtlasAustralia)) {
 }
 Mosquitoes_AtlasAustralia <- Mosquitoes_AtlasAustralia[!Mosquitoes_AtlasAustralia$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum) %>%
-  .[,c(1:3,8,4:7)]
+  .[,c(1:3,7,4:6)]
+annuli_ala_coord_decplace <- Mosquitoes_AtlasAustralia
+
 
 
 
@@ -199,21 +181,37 @@ Mosquitoes_CulexAnnulirostris <- rbind(Mosquitoes_GBIFAnnulirostris, Mosquitoes_
 
 
 
-# Clean the Sinka dataset for Anopheles stephensi
+
+# Clean the Sinka dataset for Anopheles stephensi, limited to native range of South Asia
+# Points found within the mosquito's invasive species range of Middle East and Africa are not included
 Mosquitoes_Sinka <- Mosquitoes_Sinka_Raw %>%
-  filter(!is.na(longitude),
-         !is.na(latitude),
-         year_start >= 2000 & year_end <= 2019 |
-           is.na(year_start) & publication_year >= 2010,
-         !country %in% c("Sudan","Djibouti","Ethiopia","Ehiopia")) %>%
+  filter(!is.na(longitude), !is.na(latitude))
+sinka_raw <- Mosquitoes_Sinka
+sinka_nonfossil_bor <- Mosquitoes_Sinka
+
+Mosquitoes_Sinka %<>%
+  filter(!country %in% c("Sudan","Djibouti","Ethiopia","Ehiopia"))
+sinka_nonunknown_bor <- Mosquitoes_Sinka  # Only Sinka requires a non-native range filter; classify as "nonunknown BOR" to simplify vars
+
+# On average, the time from study completion --> publication takes 4 years for the studies in the Sinka dataset
+# Thus, for studies without a reported "year_end", will only include points if publication year is >= 2004
+# That is, our lower bound for the study inclusion criteria year range (2000) plus 4
+mean(Mosquitoes_Sinka$publication_year - Mosquitoes_Sinka$year_end, na.rm=T) %>% round(0)
+Mosquitoes_Sinka %<>%
+  filter(year_start >= 2000 & year_end <= 2019 |
+           is.na(year_end) & publication_year >= 2004)
+sinka_yearrange <- Mosquitoes_Sinka
+
+Mosquitoes_Sinka %<>%
+  filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 10000)
+sinka_coord_reported <- Mosquitoes_Sinka
+
+Mosquitoes_Sinka %<>%
   dplyr::mutate(rowNum = row_number()) %>%
   dplyr::select(longitude, latitude, year_start, country, rowNum) %>%
   dplyr::mutate(species = "Anopheles stephensi",
-         month = NA,
-         day = NA,
-         identifiedBy = sample(1000000,
-                               size = nrow(.),
-                               replace = TRUE))
+                month = NA,
+                day = NA)
 
 Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Iran"] <- "IR"
 Mosquitoes_Sinka$country[Mosquitoes_Sinka$country == "Pakistan"] <- "PK"
@@ -240,13 +238,113 @@ for(i in 1:nrow(Mosquitoes_Sinka)) {
 }
 Mosquitoes_Sinka <- Mosquitoes_Sinka[!Mosquitoes_Sinka$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum) %>%
-  .[,c(5,1:2,4,3,6:8)]
+  .[,c(5,1:2,4,3,6:7)]
+sinka_coord_decplace <- Mosquitoes_Sinka
 
 
 
 
-# Combine the GBIF, Culex annulirostris, and Sinka datasets
-Background_All <- rbind(Background_All, Mosquitoes_CulexAnnulirostris, Mosquitoes_Sinka)
+
+### BACKGROUND CLEANING ###
+# Read in data of background mosquito occurrence points for future bias correction of mosquito sampling effort
+Culicidae_Raw <- read.csv("GBIF Datasets Raw/Culicidae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
+Culicidae_ALA_Raw <- read.csv("GBIF Datasets Raw/Culicidae_ALA_Raw.csv", sep = ",", header = T, encoding = "UTF-8", stringsAsFactors = F)
+Chaoboridae_Raw <- read.csv("GBIF Datasets Raw/Chaoboridae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
+Corethrellidae_Raw <- read.csv("GBIF Datasets Raw/Corethrellidae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
+Dixidae_Raw <- read.csv("GBIF Datasets Raw/Dixidae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
+Superfamily_Raw <- rbind(Culicidae_Raw, Chaoboridae_Raw, Corethrellidae_Raw, Dixidae_Raw)
+
+
+# Filter superfamily background from 2000-2019, and by <= 1000m uncertainty or >= 2 decimal points for lat/long reporting precision uncertainty
+Background_Superfamily <- Superfamily_Raw %>%
+  filter(!species == "",
+         !is.na(decimalLongitude),
+         !is.na(decimalLatitude),
+         basisOfRecord != "FOSSIL_SPECIMEN",
+         basisOfRecord != "UNKNOWN",
+         year >= 2000 & year <= 2019,
+         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
+  dplyr::mutate(rowNum = row_number()) %>%
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, rowNum)
+names(Background_Superfamily)[names(Background_Superfamily) == "countryCode"] <- "country"
+
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(Background_Superfamily)) {
+  if(decimalNums(Background_Superfamily$decimalLongitude[[i]]) < 2 &
+     decimalNums(Background_Superfamily$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+Background_Superfamily <- Background_Superfamily[!Background_Superfamily$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum)
+
+
+
+# Filter Culicidae background from 2000-2019, and by <= 1000m uncertainty or >= 2 decimal points for lat/long reporting precision uncertainty
+Background_Culicidae <- Culicidae_Raw %>%
+  filter(!species == "",
+         !is.na(decimalLongitude),
+         !is.na(decimalLatitude),
+         basisOfRecord != "FOSSIL_SPECIMEN",
+         basisOfRecord != "UNKNOWN",
+         year >= 2000 & year <= 2019,
+         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
+  dplyr::mutate(rowNum = row_number()) %>%
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, day, rowNum)
+names(Background_Culicidae)[names(Background_Culicidae) == "countryCode"] <- "country"
+
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(Background_Culicidae)) {
+  if(decimalNums(Background_Culicidae$decimalLongitude[[i]]) < 2 &
+     decimalNums(Background_Culicidae$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+Background_Culicidae <- Background_Culicidae[!Background_Culicidae$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum)
+
+
+
+# Filter special Australia ALA background to the extended coordinateUncertainty <= 10000 and (1970-2021) year range
+# This background will be used only for the Culex annulirostris model fit, to ensure representative sampling effort
+Culicidae_Australia <- Culicidae_ALA_Raw %>%
+  filter(!species == "" | (!genus == "" & !specificEpithet == ""),
+         !is.na(decimalLongitude),
+         !is.na(decimalLatitude),
+         basisOfRecord != "FOSSIL_SPECIMEN",
+         basisOfRecord != "UNKNOWN",
+         year >= 1970 & year <= 2021,
+         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 10000) %>%
+  dplyr::mutate(rowNum = row_number()) %>%
+  dplyr::select(species, genus, specificEpithet, decimalLongitude, decimalLatitude, year, month, day, rowNum) %>%
+  dplyr::mutate(country = "AU")  # Force all points to be classified as Oceania by labeling as "AU", even though some are not
+Culicidae_Australia$species <- ifelse(!Culicidae_Australia$species == "", Culicidae_Australia$species,
+                                paste(Culicidae_Australia$genus, Culicidae_Australia$specificEpithet))
+  
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(Culicidae_Australia)) {
+  if(decimalNums(Culicidae_Australia$decimalLongitude[[i]]) < 2 &
+     decimalNums(Culicidae_Australia$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+Culicidae_Australia <- Culicidae_Australia[!Culicidae_Australia$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum) %>%
+  .[,c(1,4:5,9,6:8)]
+  
+
+
+
+###  MERGING AND EXPORT ###
+# Combine the Culex annulirostris and Sinka datasets with species of interest, superfamily background, and Culicidae background
+Background_Superfamily <- rbind(Background_Superfamily, Mosquitoes_CulexAnnulirostris, Mosquitoes_Sinka)
+Background_Culicidae <- rbind(Background_Culicidae, Mosquitoes_CulexAnnulirostris, Mosquitoes_Sinka)
 Mosquitoes_SpeciesOfInterest <- rbind(Mosquitoes_SpeciesOfInterest, Mosquitoes_CulexAnnulirostris, Mosquitoes_Sinka)
 
 
@@ -255,18 +353,104 @@ Mosquitoes_SpeciesOfInterest <- rbind(Mosquitoes_SpeciesOfInterest, Mosquitoes_C
 countryCodes <- read.csv("Country Codes/country-and-continent-codes.csv", sep = ",", header = TRUE,
                          encoding = "UTF-8", stringsAsFactors = FALSE)
 
-Background_All <- Background_All %>% 
-  dplyr::mutate(continent = countryCodes$Continent_Name[match(Background_All$country, countryCodes$Two_Letter_Country_Code)]) %>%
-  .[,c(1:4,9,5:8)]
+Background_Superfamily <- Background_Superfamily %>% 
+  dplyr::mutate(continent = countryCodes$Continent_Name[match(Background_Superfamily$country, countryCodes$Two_Letter_Country_Code)]) %>%
+  .[,c(1:4,8,5:7)]
+
+Background_Culicidae <- Background_Culicidae %>% 
+  dplyr::mutate(continent = countryCodes$Continent_Name[match(Background_Culicidae$country, countryCodes$Two_Letter_Country_Code)]) %>%
+  .[,c(1:4,8,5:7)]
 
 Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest %>% 
   dplyr::mutate(continent = countryCodes$Continent_Name[match(Mosquitoes_SpeciesOfInterest$country, countryCodes$Two_Letter_Country_Code)]) %>%
-  .[,c(1:4,9,5:8)]
+  .[,c(1:4,8,5:7)]
 
 
 
 # Write CSV files containing cleaned datasets for use in the SDM
-write.csv(Background_All, file = "GBIF Datasets Cleaned/Background_All_Cleaned.csv", row.names = F)
+write.csv(Background_Superfamily, file = "GBIF Datasets Cleaned/Background_Superfamily_Cleaned.csv", row.names = F)
+write.csv(Background_Culicidae, file = "GBIF Datasets Cleaned/Background_Culicidae_Cleaned.csv", row.names = F)
 write.csv(Mosquitoes_SpeciesOfInterest, file = "GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest_Cleaned.csv", row.names = F)
+write.csv(Culicidae_Australia, file = "GBIF Datasets Cleaned/Culicidae_Australia_Supplement_Cleaned.csv", row.names = F)
+
+
+
+
+### FILTER STATISTICS ###
+# Aedes aegypti
+filterStats_pre[[1]][[1]] <- "Aedes aegypti"
+filterStats_pre[[2]][[1]] <- nrow(soi_raw %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[3]][[1]] <- nrow(soi_nonfossil_bor %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[4]][[1]] <- nrow(soi_nonunknown_bor %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[5]][[1]] <- nrow(soi_yearrange %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[6]][[1]] <- nrow(soi_coord_reported %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[7]][[1]] <- nrow(soi_coord_decplace %>% filter(species == "Aedes aegypti"))
+
+# Aedes albopictus
+filterStats_pre[[1]][[2]] <- "Aedes albopictus"
+filterStats_pre[[2]][[2]] <- nrow(soi_raw %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[3]][[2]] <- nrow(soi_nonfossil_bor %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[4]][[2]] <- nrow(soi_nonunknown_bor %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[5]][[2]] <- nrow(soi_yearrange %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[6]][[2]] <- nrow(soi_coord_reported %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[7]][[2]] <- nrow(soi_coord_decplace %>% filter(species == "Aedes albopictus"))
+
+# Anopheles gambiae
+filterStats_pre[[1]][[3]] <- "Anopheles gambiae"
+filterStats_pre[[2]][[3]] <- nrow(soi_raw %>% filter(species == "Anopheles gambiae"))
+filterStats_pre[[3]][[3]] <- nrow(soi_nonfossil_bor %>% filter(species == "Anopheles gambiae"))
+filterStats_pre[[4]][[3]] <- nrow(soi_nonunknown_bor %>% filter(species == "Anopheles gambiae"))
+filterStats_pre[[5]][[3]] <- nrow(soi_yearrange %>% filter(species == "Anopheles gambiae"))
+filterStats_pre[[6]][[3]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles gambiae"))
+filterStats_pre[[7]][[3]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles gambiae"))
+
+# Anopheles stephensi
+filterStats_pre[[1]][[4]] <- "Anopheles stephensi"
+filterStats_pre[[2]][[4]] <- nrow(soi_raw %>% filter(species == "Anopheles stephensi")) + nrow(sinka_raw)
+filterStats_pre[[3]][[4]] <- nrow(soi_nonfossil_bor %>% filter(species == "Anopheles stephensi")) + nrow(sinka_nonfossil_bor)
+filterStats_pre[[4]][[4]] <- nrow(soi_nonunknown_bor %>% filter(species == "Anopheles stephensi")) + nrow(sinka_nonunknown_bor)
+filterStats_pre[[5]][[4]] <- nrow(soi_yearrange %>% filter(species == "Anopheles stephensi")) + nrow(sinka_yearrange)
+filterStats_pre[[6]][[4]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_reported)
+filterStats_pre[[7]][[4]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_decplace)
+
+# Culex annulirostris
+filterStats_pre[[1]][[5]] <- "Culex annulirostris"
+filterStats_pre[[2]][[5]] <- nrow(annuli_gbif_raw) + nrow(annuli_ala_raw)
+filterStats_pre[[3]][[5]] <- nrow(annuli_gbif_nonfossil_bor) + nrow(annuli_ala_nonfossil_bor)
+filterStats_pre[[4]][[5]] <- nrow(annuli_gbif_nonunknown_bor) + nrow(annuli_ala_nonunknown_bor)
+filterStats_pre[[5]][[5]] <- nrow(annuli_gbif_yearrange) + nrow(annuli_ala_yearrange)
+filterStats_pre[[6]][[5]] <- nrow(annuli_gbif_coord_reported) + nrow(annuli_ala_coord_reported)
+filterStats_pre[[7]][[5]] <- nrow(annuli_gbif_coord_decplace) + nrow(annuli_ala_coord_decplace)
+
+# Culex pipiens
+filterStats_pre[[1]][[6]] <- "Culex pipiens"
+filterStats_pre[[2]][[6]] <- nrow(soi_raw %>% filter(species == "Culex pipiens"))
+filterStats_pre[[3]][[6]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex pipiens"))
+filterStats_pre[[4]][[6]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex pipiens"))
+filterStats_pre[[5]][[6]] <- nrow(soi_yearrange %>% filter(species == "Culex pipiens"))
+filterStats_pre[[6]][[6]] <- nrow(soi_coord_reported %>% filter(species == "Culex pipiens"))
+filterStats_pre[[7]][[6]] <- nrow(soi_coord_decplace %>% filter(species == "Culex pipiens"))
+
+# Culex quinquefasciatus
+filterStats_pre[[1]][[7]] <- "Culex quinquefasciatus"
+filterStats_pre[[2]][[7]] <- nrow(soi_raw %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[3]][[7]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[4]][[7]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[5]][[7]] <- nrow(soi_yearrange %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[6]][[7]] <- nrow(soi_coord_reported %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[7]][[7]] <- nrow(soi_coord_decplace %>% filter(species == "Culex quinquefasciatus"))
+
+# Culex tarsalis
+filterStats_pre[[1]][[8]] <- "Culex tarsalis"
+filterStats_pre[[2]][[8]] <- nrow(soi_raw %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[3]][[8]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[4]][[8]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[5]][[8]] <- nrow(soi_yearrange %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[6]][[8]] <- nrow(soi_coord_reported %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[7]][[8]] <- nrow(soi_coord_decplace %>% filter(species == "Culex tarsalis"))
+
+saveRDS(filterStats_pre, "filterStats_pre.RDS")
+
+
 
 
