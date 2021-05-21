@@ -24,11 +24,12 @@ seedNum <- 250
 ### LOAD IN MOSQUITO OCCURRENCES ###
 print(paste0("Loading in mosquito occurrence data"))
 # Read in cleaned mosquito species occurrence data and country codes list
-Mosquitoes_AllBackground <- read.csv("GBIF Datasets Cleaned/Mosquitoes_All_Cleaned.csv", header = TRUE,
-                                     encoding = "UTF-8", stringsAsFactors = FALSE)
-
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest_Cleaned.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
+Background_Culicidae <- read.csv("GBIF Datasets Cleaned/Background_Culicidae_Cleaned.csv", header = TRUE,
+                                 encoding = "UTF-8", stringsAsFactors = FALSE)
+Culicidae_Australia_Supplement <- read.csv("GBIF Datasets Cleaned/Culicidae_Australia_Supplement_Cleaned.csv", header = TRUE,
+                                           encoding = "UTF-8", stringsAsFactors = FALSE)
 
 
 # List of species of interest
@@ -233,7 +234,7 @@ summaryStats <- data.frame(matrix(ncol = 6, nrow=8))
 colnames(summaryStats) <- c("Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg")
 
 filterStats <- data.frame(matrix(ncol = 7, nrow=8))
-colnames(filterStats) <- c("Species","Activity_Season_Restriction","Raw_GBIF_Occurrences","Landmass_Points","Activity_Season_Points",
+colnames(filterStats) <- c("Species","Activity_Season_Restriction","Cleaned_Points","Landmass_Points","Activity_Season_Points",
                            "Sampling_Range_Points","Unique_Points_Final")
 
 mosq_bias_list <- list()
@@ -276,13 +277,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   ### OCCURRENCE POINTS ###
   species_df <- assign(speciesList[i], filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[i]))
-  occGPS <- dplyr::select(species_df, c(species, decimalLongitude, decimalLatitude)) %>% 
-    unique
-  raw_gbif_points <- nrow(occGPS)
   
   # Isolate long/lat coordinates of occurrence points
-  occGPS %<>% dplyr::select(decimalLongitude, decimalLatitude)
-  
+  occGPS <- dplyr::select(species_df, c(decimalLongitude, decimalLatitude))
+  cleaned_points <- nrow(occGPS)
   
   
   ### FIRST LEVEL OF RESTRICTION: LANDMASS-ONLY ###
@@ -376,10 +374,13 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   ### BIAS MASK SETUP ###
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Setting up bias mask and sampling weights"))
-  # Subset all-Culicidae background pool of mosquitoes to exclude the current species of interest
-  possible_bg <- Mosquitoes_AllBackground %>%
+  # Subset the background pool of mosquitoes to exclude the current species of interest
+  possible_bg <- Background_Culicidae %>%
     filter(!species == SpeciesOfInterest_Names[[i]]) %>%
     .[,c("decimalLongitude", "decimalLatitude")]
+  if(SpeciesOfInterest_Names[i] == "Culex annulirostris") {
+    possible_bg %<>% rbind(Culicidae_Australia_Supplement %>% .[,c("decimalLongitude", "decimalLatitude")])
+  }
   
   # Restrict the pool of points to the a priori defined geographic sampling range
   remove_df <- c(which(is.na(raster::extract(sampling_ranges[[i]], possible_bg))))
@@ -550,7 +551,7 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   # Save filter flowchart statistics by species
   filterStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
   filterStats[[2]][[i]] <- ActivitySeason_Type[[i]]
-  filterStats[[3]][[i]] <- raw_gbif_points
+  filterStats[[3]][[i]] <- cleaned_points
   filterStats[[4]][[i]] <- landmass_points
   filterStats[[5]][[i]] <- activity_season_points
   filterStats[[6]][[i]] <- sampling_range_points
@@ -608,6 +609,13 @@ df_precipSeason <- df_precipSeason[,c(1:11,14,12:13)]
 
 
 df_final <- rbind(df_yearRound, df_photoSeason, df_precipSeason)
+
+
+
+# Merge filterStats with filterStats_pre from the data cleaning script
+filterStats_pre <- readRDS("filterStats_pre.RDS")
+filterStats %<>% cbind(filterStats_pre[2:7]) %>%
+  .[,c(1:2,8:13,3:7)]
 
 
 
