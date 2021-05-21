@@ -1,9 +1,9 @@
-"Species","Activity_Season_Restriction","Raw_GBIF_Occurrences","Landmass_Points","Activity_Season_Points","Sampling_Range_Points","Unique_Points_Final"
-"Aedes aegypti","None- Year Round",1957,1851,1851,1828,1672
-"Aedes albopictus","Photoperiod",5819,4355,4355,4315,2699
-"Anopheles gambiae","Precipitation",161,156,156,156,142
-"Anopheles stephensi","None- Year Round",391,352,352,247,223
-"Culex annulirostris","None- Year Round",229,184,184,184,151
-"Culex pipiens","Photoperiod",2186,2097,2097,2062,1917
-"Culex quinquefasciatus","None- Year Round",4007,3937,3937,3931,2607
-"Culex tarsalis","Photoperiod",2269,2258,2258,2258,1228
+"Species","Activity_Season_Restriction","Raw_GBIF_Occurrences","Non_Fossil_BOR","Non_Unknown_BOR","Year_Range","Coord_Uncertainty_Reported","Coord_Uncertainty_DecPlace","Cleaned_Points","Landmass_Points","Activity_Season_Points","Sampling_Range_Points","Unique_Points_Final"
+"Aedes aegypti","None- Year Round",37115,37115,36981,30956,30908,30646,30646,28105,28105,20252,7951
+"Aedes albopictus","Photoperiod",39488,39488,39449,34399,34122,33866,33866,29557,29557,15971,6951
+"Anopheles gambiae","Precipitation",11947,11947,11947,8692,8692,8692,8692,8638,8638,8638,142
+"Anopheles stephensi","None- Year Round",1232,1232,1196,540,540,540,540,496,496,355,227
+"Culex annulirostris","None- Year Round",2368,2367,2367,1369,1342,1326,1326,1065,1065,1065,151
+"Culex pipiens","Photoperiod",98276,98276,98248,60078,59661,58502,58502,58261,58261,58155,1917
+"Culex quinquefasciatus","None- Year Round",30978,30978,30964,27823,27744,27535,27535,26652,26652,26646,2607
+"Culex tarsalis","Photoperiod",44496,44496,44487,34361,34358,33861,33861,33850,33850,33850,1228
