@@ -1,9 +1,0 @@
-"Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg"
-"Aedes aegypti","None- Year Round",6361,6361,1590,1590
-"Aedes albopictus","Photoperiod",5561,5561,1390,1390
-"Anopheles gambiae","Precipitation",114,114,28,28
-"Anopheles stephensi","None- Year Round",182,182,45,45
-"Culex annulirostris","None- Year Round",121,121,30,30
-"Culex pipiens","Photoperiod",1528,1528,382,382
-"Culex quinquefasciatus","None- Year Round",2078,2078,519,519
-"Culex tarsalis","Photoperiod",982,982,246,246
