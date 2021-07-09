@@ -1,4 +1,4 @@
-# mosquito-thermal-dependence
+# mosquito-sdm
 
 ## Overview
 * Investigate the thermal dependence of real-world mosquito distributions through global species distribution models and machine learning models, in comparison with lab-derived mosquito abundance curves
