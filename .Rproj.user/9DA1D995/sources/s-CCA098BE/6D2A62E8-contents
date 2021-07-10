@@ -1,0 +1,73 @@
+###### ??? ####   ## temp dataset for marissa combining gbif + kraemer aegpyti only
+
+gbif_aegypti <- read.csv("GBIF Datasets Raw/AedesAegypti_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F) %>%
+  filter(species == "Aedes aegypti",
+         !is.na(decimalLongitude), !is.na(decimalLatitude),
+         basisOfRecord != "FOSSIL_SPECIMEN",
+         basisOfRecord != "UNKNOWN",
+         year >= 2000 & year <= 2019,
+         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000)
+
+gbif_aegypti %<>%
+  dplyr::mutate(rowNum = row_number()) %>%
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year,
+                basisOfRecord, coordinateUncertaintyInMeters, rowNum)
+
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(gbif_aegypti)) {
+  if(decimalNums(gbif_aegypti$decimalLongitude[[i]]) < 2 &
+     decimalNums(gbif_aegypti$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+gbif_aegypti <- gbif_aegypti[!gbif_aegypti$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum) %>%
+  dplyr::mutate(dataset = "GBIF")
+
+
+
+kraemer_aegypti <- read.csv("GBIF Datasets Raw/Aedes_Kraemer.csv", sep = ",", header = T, encoding = "UTF-8", stringsAsFactors = F) %>%
+  filter(VECTOR == "Aedes aegypti",
+         YEAR <= 2000 & YEAR <= 2019) %>%
+  dplyr::select(VECTOR, Y, X, COUNTRY_ID, YEAR, SOURCE_TYPE) %>%
+  dplyr::mutate(coordinateUncertaintyInMeters = NA,
+                rowNum = row_number())
+colnames(kraemer_aegypti) <- c("species","decimalLatitude","decimalLongitude","countryCode","year",
+                               "basisOfRecord","coordinateUncertaintyInMeters","rowNum")
+kraemer_aegypti %<>% .[c(1,3,2,4:8)]
+
+indexRows <- list()
+counter <- 1
+for(i in 1:nrow(kraemer_aegypti)) {
+  if(decimalNums(kraemer_aegypti$decimalLongitude[[i]]) < 2 &
+     decimalNums(kraemer_aegypti$decimalLatitude[[i]]) < 2) {
+    indexRows[[counter]] <- i
+    counter <- counter+1
+  }
+}
+kraemer_aegypti <- kraemer_aegypti[!kraemer_aegypti$rowNum %in% indexRows, ] %>%
+  dplyr::select(-rowNum) %>%
+  dplyr::mutate(dataset = "Kraemer")
+
+
+
+countryCodes <- read.csv("Country Codes/country-and-continent-codes.csv", sep = ",", header = TRUE,
+                         encoding = "UTF-8", stringsAsFactors = FALSE)
+
+gbif_aegypti %<>%
+  dplyr::mutate(continent = countryCodes$Continent_Name[match(gbif_aegypti$countryCode, countryCodes$Two_Letter_Country_Code)])
+
+kraemer_aegypti %<>% 
+  dplyr::mutate(continent = countryCodes$Continent_Name[match(kraemer_aegypti$countryCode, countryCodes$Three_Letter_Country_Code)])
+
+aegypti <- rbind(gbif_aegypti, kraemer_aegypti) %>%
+  filter(continent %in% c("North America","South America")) %>%
+  filter(!countryCode %in% c("US","USA","CA","CAN")) %>%
+  .[c(1:3,5,4,9,6:8)]
+
+write.csv(aegypti, "Aegypti_GBIF_and_Kraemer_forMarissa.csv")
+
+
+####### ??? ####

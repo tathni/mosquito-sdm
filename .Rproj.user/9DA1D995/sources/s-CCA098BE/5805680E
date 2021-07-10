@@ -1,0 +1,24 @@
+{
+    "id": "5805680E",
+    "path": "~/GitHub/mosquito-sdm/6-raster-summary-figures.R",
+    "project_path": "6-raster-summary-figures.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1625873926493.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "cursorPosition": "6,15",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1623430729,
+    "encoding": "ISO8859-1",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1625874741361,
+    "read_only": false,
+    "read_only_alternatives": []
+}

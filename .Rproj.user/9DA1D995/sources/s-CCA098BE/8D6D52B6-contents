@@ -1,0 +1,132 @@
+#######################################################
+# Author: Tejas Athni
+# Project: Flu Vaccine Household Structure
+
+# Description: ACS aggregated census data cleaning and processing
+#######################################################
+
+source(here("0-config.R"))
+
+
+#------------------------------------------------------
+# Read in ACS datasets from the Box folder
+#------------------------------------------------------
+race <- box_read(826344028201)
+age <- box_read(826346446008)
+hispanic <- box_read(826343621286)
+income <- box_read(826345170777)
+medicaid <- box_read(826331389136)
+
+
+
+#------------------------------------------------------
+# Race: individual table
+#------------------------------------------------------
+race_table <- data.frame(
+  Variable = c("Race/Ethnicity","Race/Ethnicity","Race/Ethnicity","Race/Ethnicity","Race/Ethnicity",
+               "Race/Ethnicity","Race/Ethnicity","Race/Ethnicity","Race/Ethnicity","Race/Ethnicity"),
+  Strata = c("White","Black/African American","Asian/Pacific Islander","Hispanic","Other/Multiple Races",
+             "White","Black/African American","Asian/Pacific Islander","Hispanic","Other/Multiple Races"),
+  Unified_School_District = c("Oakland","Oakland","Oakland","Oakland","Oakland",
+                              "West Contra Costa","West Contra Costa","West Contra Costa",
+                              "West Contra Costa","West Contra Costa"),
+  Estimate = c(race[[5]][[2]],
+               race[[7]][[2]],
+               as.numeric(race[[11]][[2]]) + as.numeric(race[[13]][[2]]),
+               hispanic[[7]][[2]],
+               as.numeric(race[[9]][[2]]) + as.numeric(race[[15]][[2]]) + as.numeric(race[[17]][[2]]),
+               race[[5]][[3]],
+               race[[7]][[3]],
+               as.numeric(race[[11]][[3]]) + as.numeric(race[[13]][[3]]),
+               hispanic[[7]][[3]],
+               as.numeric(race[[9]][[3]]) + as.numeric(race[[15]][[3]]) + as.numeric(race[[17]][[3]])) %>% as.numeric()
+)
+
+
+
+#------------------------------------------------------
+# Age: individual table
+#------------------------------------------------------
+age_table <- data.frame(
+  Variable = c("Age","Age","Age","Age","Age","Age",
+               "Age","Age","Age","Age","Age","Age"),
+  Strata = c("0-4","5-14","15-19","20-49","50-64","65+",
+             "0-4","5-14","15-19","20-49","50-64","65+"),
+  Unified_School_District = c("Oakland","Oakland","Oakland","Oakland","Oakland","Oakland",
+                              "West Contra Costa","West Contra Costa","West Contra Costa",
+                              "West Contra Costa","West Contra Costa","West Contra Costa"),
+  Estimate = c(age[[5]][[2]],
+               as.numeric(age[[7]][[2]]) + as.numeric(age[[9]][[2]]),
+               age[[11]][[2]],
+               as.numeric(age[[13]][[2]]) + as.numeric(age[[15]][[2]]) + as.numeric(age[[17]][[2]]) + as.numeric(age[[19]][[2]]) +
+                 as.numeric(age[[21]][[2]]) + as.numeric(age[[23]][[2]]),
+               as.numeric(age[[25]][[2]]) + as.numeric(age[[27]][[2]]) + as.numeric(age[[29]][[2]]),
+               as.numeric(age[[31]][[2]]) + as.numeric(age[[33]][[2]]) + as.numeric(age[[35]][[2]]) + as.numeric(age[[37]][[2]]) +
+                 as.numeric(age[[39]][[2]]),
+               age[[5]][[3]],
+               as.numeric(age[[7]][[3]]) + as.numeric(age[[9]][[3]]),
+               age[[11]][[3]],
+               as.numeric(age[[13]][[3]]) + as.numeric(age[[15]][[3]]) + as.numeric(age[[17]][[3]]) + as.numeric(age[[19]][[3]]) +
+                 as.numeric(age[[21]][[3]]) + as.numeric(age[[23]][[3]]),
+               as.numeric(age[[25]][[3]]) + as.numeric(age[[27]][[3]]) + as.numeric(age[[29]][[3]]),
+               as.numeric(age[[31]][[3]]) + as.numeric(age[[33]][[3]]) + as.numeric(age[[35]][[3]]) + as.numeric(age[[37]][[3]]) +
+                 as.numeric(age[[39]][[3]])) %>% as.numeric()
+)
+
+
+
+#------------------------------------------------------
+# Household income in the past 12 months, inflation adjusted: individual table
+#------------------------------------------------------
+household_income_table <- data.frame(
+  Variable = c("Household Income Past 12 Months","Household Income Past 12 Months","Household Income Past 12 Months",
+               "Household Income Past 12 Months","Household Income Past 12 Months","Household Income Past 12 Months",
+               "Household Income Past 12 Months","Household Income Past 12 Months","Household Income Past 12 Months",
+               "Household Income Past 12 Months"),
+  Strata = c("$0-$49,999","$50,000-$99,999","$100,000-$149,999","$150,000-$200,000","$200,000+",
+             "$0-$49,999","$50,000-$99,999","$100,000-$149,999","$150,000-$200,000","$200,000+"),
+  Unified_School_District = c("Oakland","Oakland","Oakland","Oakland","Oakland",
+                              "West Contra Costa","West Contra Costa","West Contra Costa",
+                              "West Contra Costa","West Contra Costa"),
+  Estimate = c(as.numeric(income[[5]][[2]]) + as.numeric(income[[7]][[2]]) + as.numeric(income[[9]][[2]]) + as.numeric(income[[11]][[2]]) +
+                 as.numeric(income[[13]][[2]]) + as.numeric(income[[15]][[2]]) + as.numeric(income[[17]][[2]]) +
+                 as.numeric(income[[19]][[2]]) + as.numeric(income[[21]][[2]]),
+               as.numeric(income[[23]][[2]]) + as.numeric(income[[25]][[2]]) + as.numeric(income[[27]][[2]]),
+               as.numeric(income[[29]][[2]]) + as.numeric(income[[31]][[2]]),
+               income[[33]][[2]],
+               income[[35]][[2]],
+               as.numeric(income[[5]][[3]]) + as.numeric(income[[7]][[3]]) + as.numeric(income[[9]][[3]]) + as.numeric(income[[11]][[3]]) +
+                 as.numeric(income[[13]][[3]]) + as.numeric(income[[15]][[3]]) + as.numeric(income[[17]][[3]]) +
+                 as.numeric(income[[19]][[3]]) + as.numeric(income[[21]][[3]]),
+               as.numeric(income[[23]][[3]]) + as.numeric(income[[25]][[3]]) + as.numeric(income[[27]][[3]]),
+               as.numeric(income[[29]][[3]]) + as.numeric(income[[31]][[3]]),
+               income[[33]][[3]],
+               income[[35]][[3]]) %>% as.numeric()
+)
+
+
+
+#------------------------------------------------------
+# Medicaid coverage: individual table
+#------------------------------------------------------
+medicaid_table <- data.frame(
+  Variable = c("Medicaid","Medicaid"),
+  Strata = c("Medicaid Coverage","Medicaid Coverage"),
+  Unified_School_District = c("Oakland","West Contra Costa"),
+  Estimate = c(medicaid[[4]][[2]],
+               medicaid[[4]][[3]]) %>% as.numeric()
+)
+
+
+
+#------------------------------------------------------
+# Bind all individual tables into a single summary table
+#------------------------------------------------------
+
+acs_table <- bind_rows(race_table,
+                       age_table,
+                       household_income_table,
+                       medicaid_table)
+
+colnames(acs_table) <- c("Variable","Strata","Unified School District","Estimate")
+

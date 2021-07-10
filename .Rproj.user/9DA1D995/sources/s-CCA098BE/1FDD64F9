@@ -1,0 +1,24 @@
+{
+    "id": "1FDD64F9",
+    "path": "~/GitHub/mosquito-sdm/1-species-data-clean.R",
+    "project_path": "1-species-data-clean.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1625873126526.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "cursorPosition": "9,0",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1625876079,
+    "encoding": "ISO8859-1",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1625876079923,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -1,0 +1,24 @@
+{
+    "id": "82B4AFD5",
+    "path": "~/GitHub/mosquito-sdm/4-raster-data-extraction.R",
+    "project_path": "4-raster-data-extraction.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1625873863546.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "cursorPosition": "13,17",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1625854467,
+    "encoding": "ISO8859-1",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1625875825203,
+    "read_only": false,
+    "read_only_alternatives": []
+}
