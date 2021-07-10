@@ -486,7 +486,7 @@ CxTarsalis_lowerCI <- apply(CxTarsalis_M, 1, quantile, probs = 0.025) %>% data.f
 #------------------------------------------------------
 plot_Mcurve <- function (mean, upperCI, lowerCI, inputColor) {
   plot(mean$temp, mean$Mt, type = "l",
-       xlab = "Temperature (°C)", ylab = "Mosquito Abundance (M(T))",
+       xlab = "Temperature (Â°C)", ylab = "Mosquito Abundance (M(T))",
        col = inputColor, lwd=4,
        ylim=c(0, max(upperCI$Mt)))
   polygon(c(mean$temp, rev(mean$temp)), c(upperCI$Mt, rev(lowerCI$Mt)),

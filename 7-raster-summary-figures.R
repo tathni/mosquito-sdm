@@ -1,39 +1,24 @@
+#######################################################
+# Author: Tejas Athni
+# Project: Mosquito SDM Thermal Dependence
 
-library(readxl)
-library(dplyr)
-library(plyr)
-library(magrittr)
-library(maptools)
-library(raster)
-setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM MaxEnt Mechanistic/")
+# Description: Produce summary figures and plots from the extracted raster data
+#######################################################
+
+source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
 
 
-# Load in the cleaned dataset of covariates
+#------------------------------------------------------
+# Load in the extracted dataset of covariates
+#------------------------------------------------------
 data <- read.csv("SDM Data.csv")
 
 
-# List of species of interest and activity season types
-SpeciesOfInterest_Names <- c("Aedes aegypti",
-                             "Aedes albopictus",
-                             "Anopheles gambiae",
-                             "Anopheles stephensi",
-                             "Culex annulirostris",
-                             "Culex pipiens",
-                             "Culex quinquefasciatus",
-                             "Culex tarsalis")
 
-ActivitySeason_Type <- c("None- Year Round",
-                         "Photoperiod",
-                         "Precipitation",
-                         "None- Year Round",
-                         "Photoperiod",
-                         "None- Year Round",
-                         "Photoperiod")
-
-
-
-
-### META-STATISTICS ON MIN, MAX, AND MEDIAN FOR COVARIATES ###
+#------------------------------------------------------
+# Meta-statistics on min, max, and median for covariates
+#------------------------------------------------------
 metastats <- data %>% filter(Occ1_or_Bg0 == 1) %>%
   .[,c(1,6:14)] %>%
   group_by(Species) %>%
@@ -57,7 +42,9 @@ write.csv(metastats, "Raster Metastatistics.csv")
 
 
 
-### SPECIES OCCURRENCE AND BACKGROUND MAPS ###
+#------------------------------------------------------
+# Species occurrence and background maps
+#------------------------------------------------------
 data(wrld_simpl)
 worldMap <- wrld_simpl[wrld_simpl@data$UN!="10",]
 
@@ -97,7 +84,11 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   dev.off()
 }
 
+
+
+#------------------------------------------------------
 # Plot all Culicidae background points
+#------------------------------------------------------
 Background_All <- read.csv("GBIF Datasets Cleaned/Background_Culicidae_Cleaned.csv", header = TRUE,
                                      encoding = "UTF-8", stringsAsFactors = FALSE) %>%
   dplyr::select(decimalLongitude, decimalLatitude)
@@ -110,9 +101,9 @@ dev.off()
 
 
 
-
-
-### DENSITY PLOTS ###
+#------------------------------------------------------
+# Density plots for covariates
+#------------------------------------------------------
 # For each variable, plot the density curves for occurrences and background points
 for(i in 1:length(SpeciesOfInterest_Names)) {
   print(paste0("Creating density plots for ", SpeciesOfInterest_Names[i]))
@@ -159,9 +150,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 
 
 
-
-
-### ACTIVITY SEASON RASTERS ###
+#------------------------------------------------------
+# Activity season rasters
+#------------------------------------------------------
 activitySeason <- alply(list.files("Activity Season Metadata Merged",
                                        pattern = ".tif",
                                        full.names = TRUE), 1, function(file){
@@ -187,7 +178,10 @@ for(i in 1:length(activitySeason)) {
 }
 
 
-### ENVIRONMENTAL COVARIATES RASTERS ###
+
+#------------------------------------------------------
+# Environmental covariates rasters
+#------------------------------------------------------
 predictors <- alply(list.files("Environmental Predictors Merged",
                                    pattern = ".tif",
                                    full.names = TRUE), 1, function(file){
@@ -225,8 +219,9 @@ dev.off()
 
 
 
-
-### SAMPLING MAP RASTERS ###
+#------------------------------------------------------
+# Sampling range map rasters
+#------------------------------------------------------
 samplingMaps <- alply(list.files("Sampling Range Maps",
                                pattern = ".tif",
                                full.names = TRUE), 1, function(file){

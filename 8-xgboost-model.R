@@ -1,56 +1,48 @@
+#######################################################
+# Author: Tejas Athni
+# Project: Mosquito SDM Thermal Dependence
 
-library(xgboost)
-library(pdp)
-library(dplyr)
-library(magrittr)
-library(foreach)
-library(vip)
-library(pdp)
-library(rBayesianOptimization)
-library(pROC)
-setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM MaxEnt Mechanistic/")
+# Description: Run the XGBoost machine learning model for each species
+#######################################################
+
+source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
 
 
-
-# List of species of interest and predictors
-SpeciesOfInterest_Names <- c("Aedes aegypti",
-                             "Aedes albopictus",
-                             "Anopheles gambiae",
-                             "Anopheles stephensi",
-                             "Culex annulirostris",
-                             "Culex pipiens",
-                             "Culex quinquefasciatus",
-                             "Culex tarsalis")
-ActivitySeason_Type <- c("None- Year Round",
-                         "Photoperiod",
-                         "Precipitation",
-                         "None- Year Round",
-                         "None- Year Round",
-                         "Photoperiod",
-                         "None- Year Round",
-                         "Photoperiod")
-
-predictors <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PWQ","TAM","TASD")
-
-
-
+#------------------------------------------------------
 # Read in data and prepare for model run
+#------------------------------------------------------
 data <- read.csv("SDM Data.csv")
 model_fits <- list()
 cv_list <- list()
 best_params_list <- list()
 
 
-
+#------------------------------------------------------
+## LOOP THROUGH EACH SPECIES ##
+#------------------------------------------------------
 for(i in 1:length(SpeciesOfInterest_Names)) {
   print(paste0("Species of interest is ", SpeciesOfInterest_Names[i]))
   
+  #------------------------------------------------------
+  # List of predictors for the current species
+  #------------------------------------------------------
+  predictors <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PWQ","TAM","TASD")
+  
+  # ???? make TAM/TASD for year-round species, Precip for gambiae, etc.
+  
+  
+  
+  #------------------------------------------------------
   # Acquire training data
+  #------------------------------------------------------
   train_data <- data %>% filter(Species == SpeciesOfInterest_Names[i], DataSplit == "Training") %>% dplyr::select(c(5:14))
   tic <- Sys.time()
   
   
+  #------------------------------------------------------
   # New cross-validation function as the engine of Bayesian optimization
+  #------------------------------------------------------
   ntrees.max = 200
   set.seed(25)
   xgb_cv_bayes <- function(eta, max.depth, min.child.weight, subsample, colsample_bytree, gamma) {
@@ -76,7 +68,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   }
   
   
+  #------------------------------------------------------
   # Acquire optimal parameters with Bayesian optimization (maximization function) via the R package "rBayesianOptimization"
+  #------------------------------------------------------
   set.seed(25)
   best_params <- BayesianOptimization(xgb_cv_bayes,
                                          bounds = list(eta = c(0.0001, 0.1),
@@ -95,7 +89,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
+  #------------------------------------------------------
   # Using the tuned hyperparameters, run a second cross-validation to acquire nrounds
+  #------------------------------------------------------
   set.seed(25)
   xgb_cv <- xgb.cv(params = best_params,
                      data = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)),
@@ -109,9 +105,10 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  
+  #------------------------------------------------------
   # Check evaluation log, to see that testing and training errors are declining
   # Ensure that optimized hyperparameters are within the prespecified bounds
+  #------------------------------------------------------
   xgb_cv$evaluation_log
   
   eta_check <- xgb_cv$params$Best_Par[1] %>% round(4)
@@ -137,8 +134,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  
+  #------------------------------------------------------
   # Run the full xgb model with the suite of optimal parameters
+  #------------------------------------------------------
   set.seed(25)
   xgb.fit <- xgboost(data = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)),
                      label = train_data$Occ1_or_Bg0,
@@ -168,8 +166,11 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
+  ## ??? merge the training and eval roc plots into one with a  unified legend
   
-  # Plot ROC curve
+  #------------------------------------------------------
+  # Plot ROC curves
+  #------------------------------------------------------
   paste0("Plotting training ROC curve")
   y <- train_data[, 1]
   rownames(train_data) <- NULL
@@ -184,7 +185,6 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
            legacy.axes = TRUE,
            grid = TRUE)
   dev.off()
-  
   
   paste0("Plotting evaluation ROC curve")
   eval_data <- data %>% filter(Species == SpeciesOfInterest_Names[i], DataSplit == "Evaluation") %>% dplyr::select(c(5:14))
@@ -204,7 +204,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  ## save the model fit and save optimal params as a single list, write.RDS() 
+  ## ??? save the model fit and save optimal params as a single list, write.RDS() 
   
   vip_data <- vip(xgb.fit)
   xgb.importance(model = xgb.fit)
@@ -222,7 +222,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   dev.off()
   
   
+  #------------------------------------------------------
   # Univariate partial dependence plots
+  #------------------------------------------------------
   for(k in 1:length(predictors)) {
     save_name <- paste0(SpeciesOfInterest_Names[i]," ",predictors[[k]],".pdf")
     pdf(save_name)
@@ -234,7 +236,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   }
   
   
+  #------------------------------------------------------
   # Bivariate pdp for the 2 temperature variables
+  #------------------------------------------------------
   save_name <- paste0(SpeciesOfInterest_Names[i]," TAM-TASD Bivariate.pdf")
   pdf(save_name)
   pd <- pdp::partial(xgb.fit, train = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)), pred.var = c("TAM","TASD"), chull = TRUE)

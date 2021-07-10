@@ -1,6 +1,6 @@
 #######################################################
 # Author: Tejas Athni
-# Project: Mosquito Thermal Dependence
+# Project: Mosquito SDM Thermal Dependence
 
 # Description: Configuration file for all scripts
 #######################################################
@@ -47,6 +47,14 @@ library(plotROC)
 library(foreach)
 library(vip)
 library(rBayesianOptimization)
+
+
+#------------------------------------------------------
+# Load map data, set memory limit, and set the seed
+#------------------------------------------------------
+data(wrld_simpl)
+memory.limit(size=56000)
+seedNum <- 250
 
 
 #------------------------------------------------------

@@ -1,28 +1,22 @@
-# This script extracts and collates raster data for each of the 8 species of interest
+#######################################################
+# Author: Tejas Athni
+# Project: Mosquito SDM Thermal Dependence
 
-### SETUP ###
-library(raster)
-library(plyr)
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(magrittr)
-library(dismo)
-library(enmSdm)
-library(rgdal)
-library(sf)
-library(maptools)
-library(beepr)
-data(wrld_simpl)
-setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM MaxEnt Mechanistic/")
-memory.limit(size=56000)
-seedNum <- 250
+# Description: Extract and collate raster data for each of the mosquito species of interest
+#######################################################
+
+source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
 
 
 
-### LOAD IN MOSQUITO OCCURRENCES ###
+#------------------------------------------------------
+## DATA LOAD-IN ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Load in mosquito occurrences
+#------------------------------------------------------
 print(paste0("Loading in mosquito occurrence data"))
-# Read in cleaned mosquito species occurrence data and country codes list
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
 Background_Culicidae <- read.csv("GBIF Datasets Cleaned/Background_Culicidae.csv", header = TRUE,
@@ -30,170 +24,10 @@ Background_Culicidae <- read.csv("GBIF Datasets Cleaned/Background_Culicidae.csv
 Background_Culicidae_Australia_Supplement <- read.csv("GBIF Datasets Cleaned/Background_Culicidae_Australia_Supplement.csv",
                                                       header = TRUE, encoding = "UTF-8", stringsAsFactors = FALSE)
 
-
-# List of species of interest
-SpeciesOfInterest_Names <- c("Aedes aegypti",
-                             "Aedes albopictus",
-                             "Anopheles gambiae",
-                             "Anopheles stephensi",
-                             "Culex annulirostris",
-                             "Culex pipiens",
-                             "Culex quinquefasciatus",
-                             "Culex tarsalis")
-ActivitySeason_Type <- c("None- Year Round",
-                         "Photoperiod",
-                         "Precipitation",
-                         "None- Year Round",
-                         "None- Year Round",
-                         "Photoperiod",
-                         "None- Year Round",
-                         "Photoperiod")
-
-
-
-
-### CREATE STACKED RASTER SUMS ###
-# predictor_sum_yearRound <- sum(predictors_yearRound) %>%
-#   reclassify(cbind(-Inf, 0, NA), right=T)
-# 
-# predictor_sum_photoSeason <- sum(predictors_photoSeason) %>%
-#   reclassify(cbind(-Inf, 0, NA), right=T)
-# 
-# predictor_sum_precipSeason <- sum(predictors_precipSeason) %>%
-#   reclassify(cbind(-Inf, 0, NA), right=T)
-# 
-# writeRaster(predictor_sum_yearRound, filename = "Predictor_Sum_YearRound.tif", format = "GTiff", overwrite=T)
-# writeRaster(predictor_sum_photoSeason, filename = "Predictor_Sum_PhotoSeason.tif", format = "GTiff", overwrite=T)
-# writeRaster(predictor_sum_precipSeason, filename = "Predictor_Sum_PrecipSeason.tif", format = "GTiff", overwrite=T)
-
-
-
-
-### CREATE BACKGROUND SAMPLING MAPS ###
-# predictor_sum_yearRound <- raster("Predictor_Sum_YearRound.tif")
-# predictor_sum_photoSeason <- raster("Predictor_Sum_PhotoSeason.tif")
-# predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
-# 
-# SouthAmerica_list <- c("Colombia", "Venezuela", "Suriname", "Guyana", "French Guiana",
-#                        "Ecuador", "Peru", "Bolivia", "Chile", "Argentina", "Uruguay",
-#                        "Paraguay", "Brazil", "Falkland Islands (Malvinas)")
-# SouthAmerica <- wrld_simpl[wrld_simpl$NAME %in% SouthAmerica_list, ]
-# NorthAmerica <- wrld_simpl[wrld_simpl$REGION==19,]
-# NorthAmerica <- NorthAmerica[!NorthAmerica$NAME %in% SouthAmerica_list, ]
-# Africa <- wrld_simpl[wrld_simpl$REGION==2,]
-# Oceania <- wrld_simpl[wrld_simpl$REGION==9,]
-# Europe <- wrld_simpl[wrld_simpl$REGION==150,]
-# Europe_noRussia <- wrld_simpl[wrld_simpl$REGION==150 & !wrld_simpl$NAME == "Russia", ]
-# Asia <- wrld_simpl[wrld_simpl$REGION==142,]
-# SouthAsia_list <- c("India","Pakistan","Nepal","Bangladesh","Sri Lanka", "Bhutan")
-# SouthAsia <- wrld_simpl[wrld_simpl$NAME %in% SouthAsia_list, ]
-# PipiensOnly <- rbind(NorthAmerica, Europe_noRussia,
-#                      wrld_simpl[wrld_simpl$NAME %in% "Japan", ],
-#                      wrld_simpl[wrld_simpl$NAME == "Australia", ])
-# 
-# AedesAegypti_map <- rbind(NorthAmerica, SouthAmerica, Africa, Asia, Oceania)
-# AedesAlbopictus_map <- rbind(NorthAmerica, SouthAmerica, Europe_noRussia, Africa, Asia)
-# AnophelesGambiae_map <- Africa
-# AnophelesStephensi_map <- SouthAsia
-# CulexAnnulirostris_map <- Oceania
-# CulexPipiens_map <- PipiensOnly
-# CulexQuinquefasciatus_map <- rbind(NorthAmerica, Oceania, Asia)
-# CulexTarsalis_map <- NorthAmerica
-# 
-# # A cropped, summed predictor raster for each species of interest only within regions/continents of occurrence
-# map_1 <- crop(predictor_sum_yearRound, extent(AedesAegypti_map)) %>%
-#   mask(AedesAegypti_map)
-# map_2 <- crop(predictor_sum_photoSeason, extent(AedesAlbopictus_map)) %>%
-#   mask(AedesAlbopictus_map)
-# map_3 <- crop(predictor_sum_precipSeason, extent(AnophelesGambiae_map)) %>%
-#   mask(AnophelesGambiae_map)
-# map_4 <- crop(predictor_sum_yearRound, extent(AnophelesStephensi_map)) %>%
-#   mask(AnophelesStephensi_map)
-# map_5 <- crop(predictor_sum_yearRound, extent(CulexAnnulirostris_map)) %>%
-#   mask(CulexAnnulirostris_map)
-# map_6 <- crop(predictor_sum_photoSeason, extent(CulexPipiens_map)) %>%
-#   mask(CulexPipiens_map)
-# map_7 <- crop(predictor_sum_yearRound, extent(CulexQuinquefasciatus_map)) %>%
-#   mask(CulexQuinquefasciatus_map)
-# map_8 <- crop(predictor_sum_photoSeason, extent(CulexTarsalis_map)) %>%
-#   mask(CulexTarsalis_map)
-# 
-# # Save cropped rasters for future use
-# writeRaster(map_1, filename = "Sampling Range Maps/AeAegypti_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_2, filename = "Sampling Range Maps/AeAlbopictus_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_3, filename = "Sampling Range Maps/AnGambiae_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_4, filename = "Sampling Range Maps/AnStephensi_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_5, filename = "Sampling Range Maps/CxAnnulirostris_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_6, filename = "Sampling Range Maps/CxPipiens_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_7, filename = "Sampling Range Maps/CxQuinquefasciatus_SamplingRange.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_8, filename = "Sampling Range Maps/CxTarsalis_SamplingRange.tif", format = "GTiff", overwrite=T)
-
-
-# # Diagnostic continent maps for troubleshooting
-# map_NA <- crop(predictor_sum_yearRound, extent(NorthAmerica)) %>%
-#   mask(NorthAmerica)
-# map_SA <- crop(predictor_sum_yearRound, extent(SouthAmerica)) %>%
-#   mask(SouthAmerica)
-# map_Africa <- crop(predictor_sum_yearRound, extent(Africa)) %>%
-#   mask(Africa)
-# map_Oceania <- crop(predictor_sum_yearRound, extent(Oceania)) %>%
-#   mask(Oceania)
-# map_Europe <- crop(predictor_sum_yearRound, extent(Europe)) %>%
-#   mask(Europe)
-# map_Europe_noRussia <- crop(predictor_sum_yearRound, extent(Europe_noRussia)) %>%
-#   mask(Europe_noRussia)
-# map_Asia <- crop(predictor_sum_yearRound, extent(Asia)) %>%
-#   mask(Asia)
-# map_SouthAsia <- crop(predictor_sum_yearRound, extent(SouthAsia)) %>%
-#   mask(SouthAsia)
-# 
-# writeRaster(map_NA, filename = "Diagnostic Continent Maps/NorthAmerica_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_SA, filename = "Diagnostic Continent Maps/SouthAmerica_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_Africa, filename = "Diagnostic Continent Maps/Africa_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_Oceania, filename = "Diagnostic Continent Maps/Oceania_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_Europe, filename = "Diagnostic Continent Maps/Europe_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_Europe_noRussia, filename = "Diagnostic Continent Maps/Europe_noRussia_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_Asia, filename = "Diagnostic Continent Maps/Asia_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-# writeRaster(map_SouthAsia, filename = "Diagnostic Continent Maps/SouthAsia_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-
-
-
-
-
-### CREATE BIAS MASK FOR SAMPLING ###
-# biasMask_1 <- sampling_ranges[[1]]
-# biasMask_1[!is.na(biasMask_1)] <- 0
-# biasMask_2 <- sampling_ranges[[2]]
-# biasMask_2[!is.na(biasMask_2)] <- 0
-# biasMask_3 <- sampling_ranges[[3]]
-# biasMask_3[!is.na(biasMask_3)] <- 0
-# biasMask_4 <- sampling_ranges[[4]]
-# biasMask_4[!is.na(biasMask_4)] <- 0
-# biasMask_5 <- sampling_ranges[[5]]
-# biasMask_5[!is.na(biasMask_5)] <- 0
-# biasMask_6 <- sampling_ranges[[6]]
-# biasMask_6[!is.na(biasMask_6)] <- 0
-# biasMask_7 <- sampling_ranges[[7]]
-# biasMask_7[!is.na(biasMask_7)] <- 0
-# biasMask_8 <- sampling_ranges[[8]]
-# biasMask_8[!is.na(biasMask_8)] <- 0
-# 
-# # Save bias mask rasters for future use
-# writeRaster(biasMask_1, filename = "Bias Masks/AeAegypti_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_2, filename = "Bias Masks/AeAlbopictus_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_3, filename = "Bias Masks/AnGambiae_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_4, filename = "Bias Masks/AnStephensi_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_5, filename = "Bias Masks/CxAnnulirostris_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_6, filename = "Bias Masks/CxPipiens_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_7, filename = "Bias Masks/CxQuinquefasciatus_BiasMask.tif", format = "GTiff", overwrite=T)
-# writeRaster(biasMask_8, filename = "Bias Masks/CxTarsalis_BiasMask.tif", format = "GTiff", overwrite=T)
-
-
-
-
-### LOAD IN RASTERS ###
+#------------------------------------------------------
+# Load in environmental predictors
+#------------------------------------------------------
 print(paste0("Loading in raster data"))
-# Read in and name the environmental predictors
 predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                         pattern = ".tif",
                                         full.names = TRUE), 1, function(file){
@@ -204,7 +38,10 @@ predictors_preStack <- alply(list.files("Environmental Predictors Merged",
 rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
 predictors_preStack <- setNames(predictors_preStack, rasterNames)
 
+
+#------------------------------------------------------
 # Compress predictors into a stacked raster for each activity season combination
+#------------------------------------------------------
 predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
 predictors_photoSeason <- predictors_preStack[c(1:8,11)] %>% stack()
 predictors_precipSeason <- predictors_preStack[c(1:6,9:11)] %>% stack()
@@ -212,7 +49,10 @@ predictor_sum_yearRound <- raster("Predictor_Sum_YearRound.tif")
 predictor_sum_photoSeason <- raster("Predictor_Sum_PhotoSeason.tif")
 predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
 
-# Read in the cropped raster sampling ranges
+
+#------------------------------------------------------
+# Read in the cropped raster sampling ranges and bias masks
+#------------------------------------------------------
 sampling_ranges <- alply(list.files("Sampling Range Maps",
                                    pattern = ".tif",
                                    full.names = TRUE), 1, function(file){
@@ -221,7 +61,6 @@ sampling_ranges <- alply(list.files("Sampling Range Maps",
                                      return(rast)
                                    })
 
-# Read in the bias masks
 bias_masks <- alply(list.files("Bias Masks",
                                   pattern = ".tif",
                                   full.names = TRUE), 1, function(file){
@@ -231,9 +70,12 @@ bias_masks <- alply(list.files("Bias Masks",
                                   })
 
 
-
-### PREPARE LISTS AND CONTAINERS ###
+#------------------------------------------------------
+## PREPARE LISTS AND CONTAINERS ##
+#------------------------------------------------------
+#------------------------------------------------------
 # Compile necessary lists needed in the SDM for loop
+#------------------------------------------------------
 speciesList <- c("AedesAegypti",
                   "AedesAlbopictus",
                   "AnophelesGambiae",
@@ -279,8 +121,12 @@ counter_PhS <- 1
 counter_PrS <- 1
 
 
-### INITIATE RASTER DATA EXTRACTION ###
+#------------------------------------------------------
+## INITIATE RASTER DATA EXTRACTION ##
+#------------------------------------------------------
+#------------------------------------------------------
 # Loop through each species
+#------------------------------------------------------
 for (i in 1:length(SpeciesOfInterest_Names)) { 
   tic <- Sys.time()
   print(paste0("Species of interest is ", SpeciesOfInterest_Names[i]))

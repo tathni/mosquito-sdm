@@ -9,7 +9,6 @@ source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
 setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
 
 
-
 #------------------------------------------------------
 ## DATA LOAD-IN ##
 #------------------------------------------------------
@@ -70,11 +69,12 @@ bias_masks <- alply(list.files("Bias Masks",
                                   })
 
 
+
 #------------------------------------------------------
 ## PREPARE LISTS AND CONTAINERS ##
 #------------------------------------------------------
 #------------------------------------------------------
-# Compile necessary lists needed in the SDM for loop
+# Compile necessary lists and values needed in the SDM for loop
 #------------------------------------------------------
 speciesList <- c("AedesAegypti",
                   "AedesAlbopictus",
@@ -121,17 +121,17 @@ counter_PhS <- 1
 counter_PrS <- 1
 
 
+
 #------------------------------------------------------
-## INITIATE RASTER DATA EXTRACTION ##
-#------------------------------------------------------
-#------------------------------------------------------
-# Loop through each species
+## LOOP THROUGH EACH SPECIES AND RASTER DATA EXTRACT ##
 #------------------------------------------------------
 for (i in 1:length(SpeciesOfInterest_Names)) { 
   tic <- Sys.time()
   print(paste0("Species of interest is ", SpeciesOfInterest_Names[i]))
   
+  #------------------------------------------------------
   # Set predictor stack according to specific activity season setting
+  #------------------------------------------------------
   if(SpeciesOfInterest_Names[i] == "Aedes aegypti" |
      SpeciesOfInterest_Names[i] == "Anopheles stephensi" |
      SpeciesOfInterest_Names[i] == "Culex annulirostris" |
@@ -152,16 +152,21 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   predictorSum_world <- predictor_sum_yearRound
  
   
-  
-  ### OCCURRENCE POINTS ###
-  species_df <- assign(speciesList[i], filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[i]))
-  
+  #------------------------------------------------------
   # Isolate long/lat coordinates of occurrence points
+  #------------------------------------------------------
+  species_df <- assign(speciesList[i], filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[i]))
   occGPS <- dplyr::select(species_df, c(decimalLongitude, decimalLatitude))
   cleaned_points <- nrow(occGPS)
   
   
-  ### FIRST LEVEL OF RESTRICTION: LANDMASS-ONLY ###
+  
+  #------------------------------------------------------
+  ## RESTRICT OCCURRENCES THROUGH PROGRESSIVE FILTERS ##
+  #------------------------------------------------------
+  #------------------------------------------------------
+  # First sieve: landmass only
+  #------------------------------------------------------
   # Restrict occurrence points to acquire landmass-only points and exclude points in the ocean
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Isolating training and evaluation cells, landmass restricted"))
   remove_df <- c(which(is.na(raster::extract(predictorSum_world, occGPS))))
@@ -174,8 +179,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   landmass_points <- nrow(occGPS_noNA)
   
   
-  
-  ### SECOND LEVEL OF RESTRICTION: ACTIVITY SEASON ###
+  #------------------------------------------------------
+  # Second sieve: activity season
+  #------------------------------------------------------
   # Restrict landmass points to acquire points within the given species' activity season configuration
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Isolating training and evaluation cells, activity season restricted"))
   remove_df <- c(which(is.na(raster::extract(predictorSum, occGPS_noNA))))
@@ -188,8 +194,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   activity_season_points <- nrow(occGPS_activity_noNA)
   
   
-  
-  ### THIRD LEVEL OF RESTRICTION: SAMPLING RANGE ###
+  #------------------------------------------------------
+  # Third sieve: sampling range
+  #------------------------------------------------------
   # Restrict activity season points to acquire points within the given species' background sampling range
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Isolating training and evaluation cells, sampling range restricted"))
   remove_df <- c(which(is.na(raster::extract(sampling_ranges[[i]], occGPS_activity_noNA))))
@@ -202,8 +209,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   sampling_range_points <- nrow(occGPS_samprange_noNA)
   
   
-  
-  ### FOURTH LEVEL OF RESTRICTION: UNIQUE, NON-NA ###
+  #------------------------------------------------------
+  # Fourth sieve: unique, non-NA points
+  #------------------------------------------------------
   # Restrict occurrences to unique, non-NA cells of 1km x 1km, and then back-acquire the centroid (x,y) of the cells
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Isolating training and evaluation cells, unique and non-NA"))
   cell_centroids_unique <- xyFromCell(predictors, cellFromXY(predictors, occGPS_samprange_noNA) %>% 
@@ -213,7 +221,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  ### TRAINING-EVALUATION SPLIT ###
+  #------------------------------------------------------
+  # Training-evaluation split
+  #------------------------------------------------------
   # Assign 80% of all cells without replacement as training data
   # Set aside 20% for evaluation
   train_ratio <- round(nrow(cell_centroids_unique) * 0.8)
@@ -223,8 +233,12 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
 
   
-  ### OCCURRENCE COVARIATES EXTRACTION ###
-  # Extract covariates for training points occurrences
+  #------------------------------------------------------
+  ## COVARIATE EXTRACTION ##
+  #------------------------------------------------------
+  #------------------------------------------------------
+  # Extract covariates from occurrences (train and eval)
+  #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting covariate info from training occurrences"))
   train_occ <- cbind(c(rep(1, nrow(cells_train))),
                      data.frame(raster::extract(predictors, cells_train)),
@@ -236,7 +250,6 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   colnames(train_occ)[13] <- "dataSplit"
   train_occ <- train_occ[,c(11:13,1:10)]
   
-  # Extract covariates for evaluation points occurrences
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting covariate info from evaluation occurrences"))
   eval_occ <- cbind(c(rep(1, nrow(cells_eval))),
                     data.frame(raster::extract(predictors, cells_eval)),
@@ -250,7 +263,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  ### BIAS MASK SETUP ###
+  #------------------------------------------------------
+  # Bias mask setup
+  #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Setting up bias mask and sampling weights"))
   # Subset the background pool of mosquitoes to exclude the current species of interest
   possible_bg <- Background_Culicidae %>%
@@ -268,7 +283,10 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
     possible_bg_noNA <- possible_bg
   } 
   
+  
+  #------------------------------------------------------
   # Populate the currently-empty bias mask for background sampling
+  #------------------------------------------------------
   mosq_bias <- bias_masks[[i]]  
   pixels <- cellFromXY(mosq_bias, 
                        cbind(possible_bg$decimalLongitude,   
@@ -278,8 +296,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  
-  ### BACKGROUND SAMPLING ###
+  #------------------------------------------------------
+  # Background sampling
+  #------------------------------------------------------
   # Random sample and select background points from the biased, weighted mask
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Sampling background cells"))
   select_trainBg <- nrow(cells_train) # Same number of background points as occurrence points
@@ -294,9 +313,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  
-  ### BACKGROUND COVARIATE EXTRACTION ###
-  # Extract covariates for training points background
+  #------------------------------------------------------
+  # Extract covariates from background (train and eval)
+  #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting covariate info from training background"))
   set.seed(seedNum)
   cells_train_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_train_bg)),
@@ -312,7 +331,6 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   train_bg <- train_bg[,c(11:13,1:10)]
 
   
-  # Extract covariates for evaluation points background
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting covariate info from evaluation background"))
   set.seed(seedNum)
   cells_eval_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_eval_bg)),
@@ -333,15 +351,21 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  ### DATA MERGING AND BINDING ###
+  #------------------------------------------------------
+  ## DATA MERGING AND BINDING ##
+  #------------------------------------------------------
+  #------------------------------------------------------
   # Merge training and occurrences for both the training set and evaluation set
+  #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Merging covariate info from occ/bg points for training/eval"))
   predictors_train_df <- rbind(train_occ, train_bg)
   predictors_eval_df <- rbind(eval_occ, eval_bg)
   
   
+  #------------------------------------------------------
   # Bind the training and background datasets into one
   # Complete cases should remove nothing; this is a safety check to ensure that sdmData_raw = sdmData
+  #------------------------------------------------------
   sdmData_raw <- rbind(predictors_train_df, predictors_eval_df)
   sdmData <- sdmData_raw[complete.cases(sdmData_raw), ] %>%  
     mutate(species = SpeciesOfInterest_Names[i])
@@ -349,7 +373,9 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   print(paste0("SDM Data Raw: ", nrow(sdmData_raw), "; SDM Data: ", nrow(sdmData)))
   
   
+  #------------------------------------------------------
   # Save the data for each species into a list, to compile into a single csv below
+  #------------------------------------------------------
   if(SpeciesOfInterest_Names[i] == "Aedes aegypti" |
      SpeciesOfInterest_Names[i] == "Anopheles stephensi" |
      SpeciesOfInterest_Names[i] == "Culex annulirostris" |
@@ -372,8 +398,12 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   
   
   
-  ### SUMMARY STATISTICS ###
-  # Save summary statistics by species
+  #------------------------------------------------------
+  ## SUMMARY STATISTICS ##
+  #------------------------------------------------------
+  #------------------------------------------------------
+  # Save summary statistics in the pre-created dataframe
+  #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Saving summary statistics"))
   trainevalStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
   trainevalStats[[2]][[i]] <- ActivitySeason_Type[[i]]
@@ -383,7 +413,6 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   trainevalStats[[6]][[i]] <- nrow(eval_bg)
   
   
-  # Save filter flowchart statistics by species
   filterStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
   filterStats[[2]][[i]] <- ActivitySeason_Type[[i]]
   filterStats[[3]][[i]] <- cleaned_points
@@ -393,15 +422,21 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   filterStats[[7]][[i]] <- unique_points
 
   
+  #------------------------------------------------------
   # Print elapsed time for given species' raster data extraction
+  #------------------------------------------------------
   toc <- Sys.time()
   toc - tic
   
 }
 
 
-### CONSOLIDATE DATAFRAMES FOR SAVING ###
+#------------------------------------------------------
+## CONSOLIDATE DATAFRAMES FOR SAVING ##
+#------------------------------------------------------
+#------------------------------------------------------
 # Create merged dataframes to output as .csv's
+#------------------------------------------------------
 df_yearRound <- sdmData_yearRound[[1]][FALSE, ]
 df_photoSeason <- sdmData_photoSeason[[1]][FALSE, ]
 df_precipSeason <- sdmData_precipSeason[[1]][FALSE, ]
@@ -434,9 +469,11 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
 }
 
 
+#------------------------------------------------------
 # Rename the columns of the dataframe and merge before exporting the .csv
 # {PhotoASTM, PrecipASTM, and TAM} = TAM in the .csv
 # {PhotoASTSD, PrecipASTSD, and TASD} = TASD in the .csv
+#------------------------------------------------------
 colnames(df_yearRound) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
                                   "EVISD","FC","HPD","PDQ","PWQ","TAM","TASD")
 
@@ -452,16 +489,17 @@ df_precipSeason <- df_precipSeason[,c(1:11,14,12:13)]
 df_final <- rbind(df_yearRound, df_photoSeason, df_precipSeason)
 
 
-
+#------------------------------------------------------
 # Merge filterStats with filterStats_pre from the data cleaning script
+#------------------------------------------------------
 filterStats_pre <- readRDS("filterStats_pre.RDS")
 filterStats %<>% cbind(filterStats_pre[2:7]) %>%
   .[,c(1:2,8:13,3:7)]
 
 
-
-### SAVE SDM DATA ###
+#------------------------------------------------------
 # Output .csv files
+#------------------------------------------------------
 write.csv(trainevalStats, file = "Train Eval Statistics by Species.csv", row.names=FALSE)
 write.csv(filterStats, file = "Filter Statistics by Species.csv", row.names=FALSE)
 write.csv(df_final, file = "SDM Data.csv", row.names=FALSE)
