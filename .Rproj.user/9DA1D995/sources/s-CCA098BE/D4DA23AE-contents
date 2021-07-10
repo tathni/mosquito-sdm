@@ -1,27 +1,56 @@
-#######################################################
-# Author: Tejas Athni
-# Project: Mosquito SDM Thermal Dependence
+# This script performs the compilation of figures and plots for the SDM
+# Ancillary to the main SDM script
 
-# Description: Compile figures and plots from the XGBoost model fit
-#######################################################
+### ~~ SETUP ~~ ###
+library(raster)
+library(rJava)
+library(maxnet)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(magrittr)
+library(dismo)
+library(rgdal)
+library(sf)
+library(spThin)
+library(corrplot)
+library(pROC)
+library(pdp)
+library(maptools)
+library(plotROC)
+data(wrld_simpl)
+setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM MaxEnt Mechanistic/")
+tic <- Sys.time()
+seedNum <- 250
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
-setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
-
-
-#------------------------------------------------------
-# Read in cleaned mosquito species occurrence data and background
-#------------------------------------------------------
-Background_Culidiae <- read.csv("GBIF Datasets Cleaned/Background_Culicidae.csv", header = TRUE,
+# Read in cleaned mosquito species occurrence data and country codes list
+Mosquitoes_AllBackground <- read.csv("GBIF Datasets Cleaned/Mosquitoes_All_Cleaned.csv", header = TRUE,
                                      encoding = "UTF-8", stringsAsFactors = FALSE)
 
-Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
+Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest_Cleaned.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
 
+countryCodes <- read.csv("Country Codes/country-and-continent-codes.csv", sep = ",", header = TRUE,
+                         encoding = "UTF-8", stringsAsFactors = FALSE)
 
-#------------------------------------------------------
+# Assign continent names to both cleaned datasets
+Mosquitoes_AllBackground <- Mosquitoes_AllBackground %>% 
+  mutate(continent = countryCodes$Continent_Name[match(Mosquitoes_AllBackground$countryCode, countryCodes$Two_Letter_Country_Code)])
+
+Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest %>% 
+  mutate(continent = countryCodes$Continent_Name[match(Mosquitoes_SpeciesOfInterest$countryCode, countryCodes$Two_Letter_Country_Code)])
+
+# List of species of interest names
+SpeciesOfInterest_Names <- c("Aedes aegypti",
+                             "Aedes albopictus",
+                             "Anopheles gambiae",
+                             "Culex annulirostris",
+                             "Culex pipiens",
+                             "Culex quinquefasciatus",
+                             "Culex tarsalis")
+
 # Read in and name the environmental predictors
-#------------------------------------------------------
 predictorsPreStack <- alply(list.files("Environmental Predictors Merged",
                                        pattern = ".tif",
                                        full.names = TRUE), 1, function(file){
@@ -36,9 +65,7 @@ predictors <- predictorsPreStack %>% stack()
 
 
 
-#------------------------------------------------------
 # Read in the first day, last day, and length of the activity season rasters
-#------------------------------------------------------
 activityPreStack <- alply(list.files("Activity Season Metadata Rasters",
                                        pattern = ".tif",
                                        full.names = TRUE), 1, function(file){
@@ -83,11 +110,10 @@ plot(predictors, legend.mar = c(8,8))
 dev.off()
 
 
-## ??? move pairs plot to script 7-raster-summary-figures.R
 
 ### PAIRS CORRELATION ANALYSIS ###
 set.seed(seedNum)
-pairs_possibleBg <- Background_Culicidae %>%
+pairs_possibleBg <- Mosquitoes_AllBackground %>%
   dplyr::select(decimalLongitude, decimalLatitude) %>%
   unique
 set.seed(seedNum)
@@ -110,7 +136,7 @@ dev.off()
 
 # ### PAIRS CORRELATION ANALYSIS - ALL TEMPERATURE VARS ###
 # set.seed(seedNum)
-# temp_possibleBg <- Background_Culicidae %>%
+# temp_possibleBg <- Mosquitoes_AllBackground %>%
 #   select(decimalLongitude, decimalLatitude) %>%
 #   unique
 # set.seed(seedNum)
