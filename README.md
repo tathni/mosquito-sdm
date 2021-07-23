@@ -1,7 +1,7 @@
 # mosquito-sdm
 
 ## Overview
-* Thermal dependence of real-world mosquito distributions through global species distribution models and machine learning models, in comparison with lab-derived mosquito abundance curves
+* Investigate thermal dependence of real-world mosquito distributions via global species distribution models and machine learning models, in comparison with lab-derived mosquito abundance curves
 
 ## Directory Structure
 * 0-config.R: Configuration file that loads required libraries, sources data directories and base functions
