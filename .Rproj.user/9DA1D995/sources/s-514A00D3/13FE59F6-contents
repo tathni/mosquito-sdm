@@ -2,7 +2,7 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Run diagnostic checks to inform geography and background sampling methods
+# Description: Run diagnostic checks to inform geographic range and background sampling method
 #######################################################
 
 source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
@@ -10,73 +10,140 @@ setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Th
 
 
 #------------------------------------------------------
-# Load in temperature rasters
+## INITIALIZE GEOGRAPHIC RANGES ##
 #------------------------------------------------------
-year_tam <- raster("Environmental Predictors Merged/TAM.tif")
-photo_astm <- raster("Environmental Predictors Merged/PhotoASTM.tif")
-precip_astm <- raster("Environmental Predictors Merged/PrecipASTM.tif")
-
-
 #------------------------------------------------------
-# Initialize continent maps
+# Continents
 #------------------------------------------------------
 SouthAmerica_list <- c("Colombia", "Venezuela", "Suriname", "Guyana", "French Guiana",
                        "Ecuador", "Peru", "Bolivia", "Chile", "Argentina", "Uruguay",
                        "Paraguay", "Brazil", "Falkland Islands (Malvinas)")
 SouthAmerica <- wrld_simpl[wrld_simpl$NAME %in% SouthAmerica_list, ]
-NorthAmerica <- wrld_simpl[wrld_simpl$REGION==19,]
-NorthAmerica <- NorthAmerica[!NorthAmerica$NAME %in% SouthAmerica_list, ]
+NorthAmerica <- wrld_simpl[wrld_simpl$REGION==19,] %>% .[!NorthAmerica$NAME %in% SouthAmerica_list, ]
 Africa <- wrld_simpl[wrld_simpl$REGION==2,]
 Oceania <- wrld_simpl[wrld_simpl$REGION==9,]
 Europe <- wrld_simpl[wrld_simpl$REGION==150,]
-Europe_noRussia <- wrld_simpl[wrld_simpl$REGION==150 & !wrld_simpl$NAME == "Russia", ]
 Asia <- wrld_simpl[wrld_simpl$REGION==142,]
+
+
+#------------------------------------------------------
+# Regions
+#------------------------------------------------------
 SouthAsia_list <- c("India","Pakistan","Nepal","Bangladesh","Sri Lanka", "Bhutan")
 SouthAsia <- wrld_simpl[wrld_simpl$NAME %in% SouthAsia_list, ]
+Europe_noRussia <- wrld_simpl[wrld_simpl$REGION==150 & !wrld_simpl$NAME == "Russia", ]
+
+
+#------------------------------------------------------
+# Hemispheres
+#------------------------------------------------------
+LeftHemisphere <- rbind(SouthAmerica, NorthAmerica)
+RightHemisphere <- rbind(Africa, Oceania, Europe, Asia)
+
+
+#------------------------------------------------------
+# Entire globe
+#------------------------------------------------------
+Globe <- rbind(SouthAmerica, NorthAmerica, Africa, Oceania, Europe, Asia)
+
+
+#------------------------------------------------------
+# Load in environmental predictors
+#------------------------------------------------------
+predictors_preStack <- alply(list.files("Environmental Predictors Merged",
+                                        pattern = ".tif",
+                                        full.names = TRUE), 1, function(file){
+                                          print(file)
+                                          rast <- raster(file)
+                                          return(rast)
+                                        })
+rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
+predictors_preStack <- setNames(predictors_preStack, rasterNames)
+
+
+#------------------------------------------------------
+# Compress predictors into a stacked raster for each activity season combination
+#------------------------------------------------------
+predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:8,11)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,9:11)] %>% stack()
+predictor_sum_yearRound <- raster("Predictor_Sum_YearRound.tif")
+predictor_sum_photoSeason <- raster("Predictor_Sum_PhotoSeason.tif")
+predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
 
 
 
 #------------------------------------------------------
-# Create temperature-only diagnostic continent maps for troubleshooting
+## CREATE CONTINENT, REGION, HEMISPHERE, GLOBE MAPS BY ACTIVITY SEASON ##
 #------------------------------------------------------
-year_SouthAmerica <- crop(year_tam, extent(SouthAmerica)) %>%
-  mask(SouthAmerica)
-year_NorthAmerica <- crop(year_tam, extent(NorthAmerica)) %>%
-  mask(NorthAmerica)
-year_Africa <- crop(year_tam, extent(Africa)) %>%
-  mask(Africa)
-year_Oceania <- crop(year_tam, extent(Oceania)) %>%
-  mask(Oceania)
-year_Europe <- crop(year_tam, extent(Europe)) %>%
-  mask(Europe)
-year_Europe_noRussia <- crop(year_tam, extent(Europe_noRussia)) %>%
-  mask(Europe_noRussia)
-year_Asia <- crop(year_tam, extent(Asia)) %>%
-  mask(Asia)
-year_SouthAsia <- crop(year_tam, extent(SouthAsia)) %>%
-  mask(SouthAsia)
-
-photo_SouthAmerica <- crop(photo_astm, extent(SouthAmerica)) %>%
-  mask(SouthAmerica)
-photo_NorthAmerica <- crop(photo_astm, extent(NorthAmerica)) %>%
-  mask(NorthAmerica)
-photo_Africa <- crop(photo_astm, extent(Africa)) %>%
-  mask(Africa)
-photo_Oceania <- crop(photo_astm, extent(Oceania)) %>%
-  mask(Oceania)
-photo_Europe <- crop(photo_astm, extent(Europe)) %>%
-  mask(Europe)
-photo_Europe_noRussia <- crop(photo_astm, extent(Europe_noRussia)) %>%
-  mask(Europe_noRussia)
-photo_Asia <- crop(photo_astm, extent(Asia)) %>%
-  mask(Asia)
-photo_SouthAsia <- crop(photo_astm, extent(SouthAsia)) %>%
-  mask(SouthAsia)
-
-precip_Africa <- crop(precip_astm, extent(Africa)) %>%
-  mask(Africa)
+#------------------------------------------------------
+# Year round
+#------------------------------------------------------
+year_SouthAmerica <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(SouthAmerica)) %>% mask(SouthAmerica)
+year_NorthAmerica <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(NorthAmerica)) %>% mask(NorthAmerica)
+year_Africa <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(Africa)) %>% mask(Africa)
+year_Oceania <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(Oceania)) %>% mask(Oceania)
+year_Europe <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(Europe)) %>% mask(Europe)
+year_Europe_noRussia <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(Europe_noRussia)) %>% mask(Europe_noRussia)
+year_Asia <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(Asia)) %>% mask(Asia)
+year_SouthAsia <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(SouthAsia)) %>% mask(SouthAsia)
+year_LeftHemisphere <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(LeftHemisphere)) %>% mask(LeftHemisphere)
+year_RightHemisphere <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(RightHemisphere)) %>% mask(RightHemisphere)
+year_Globe <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
+  crop(., extent(Globe)) %>% mask(Globe)
 
 
+#------------------------------------------------------
+# Photoperiod activity season
+#------------------------------------------------------
+photo_SouthAmerica <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(SouthAmerica)) %>% mask(SouthAmerica)
+photo_NorthAmerica <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(NorthAmerica)) %>% mask(NorthAmerica)
+photo_Africa <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(Africa)) %>% mask(Africa)
+photo_Oceania <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(Oceania)) %>% mask(Oceania)
+photo_Europe <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(Europe)) %>% mask(Europe)
+photo_Europe_noRussia <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(Europe_noRussia)) %>% mask(Europe_noRussia)
+photo_Asia <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(Asia)) %>% mask(Asia)
+photo_SouthAsia <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(SouthAsia)) %>% mask(SouthAsia)
+photo_LeftHemisphere <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(LeftHemisphere)) %>% mask(LeftHemisphere)
+photo_RightHemisphere <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(RightHemisphere)) %>% mask(RightHemisphere)
+photo_Globe <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
+  crop(., extent(Globe)) %>% mask(Globe)
+
+
+#------------------------------------------------------
+# Precipitation activity season
+#------------------------------------------------------
+precip_Africa <- predictors_precipSeason %>% mask(predictor_sum_precipSeason) %>%
+  crop(., extent(Africa)) %>% mask(Africa)
+precip_RightHemisphere <- predictors_precipSeason %>% mask(predictor_sum_precipSeason) %>%
+  crop(., extent(RightHemisphere)) %>% mask(RightHemisphere)
+precip_Globe <- predictors_precipSeason %>% mask(predictor_sum_precipSeason) %>%
+  crop(., extent(Globe)) %>% mask(Globe)
+
+
+#------------------------------------------------------
+# Save rasters
+#------------------------------------------------------
 writeRaster(year_SouthAmerica, filename = "Diagnostic Continent Maps/Year_SouthAmerica.tif", format = "GTiff", overwrite=T)
 writeRaster(year_NorthAmerica, filename = "Diagnostic Continent Maps/Year_NorthAmerica.tif", format = "GTiff", overwrite=T)
 writeRaster(year_Africa, filename = "Diagnostic Continent Maps/Year_Africa.tif", format = "GTiff", overwrite=T)
@@ -84,7 +151,10 @@ writeRaster(year_Oceania, filename = "Diagnostic Continent Maps/Year_Oceania.tif
 writeRaster(year_Europe, filename = "Diagnostic Continent Maps/Year_Europe.tif", format = "GTiff", overwrite=T)
 writeRaster(year_Europe_noRussia, filename = "Diagnostic Continent Maps/Year_Europe_noRussia.tif", format = "GTiff", overwrite=T)
 writeRaster(year_Asia, filename = "Diagnostic Continent Maps/Year_Asia.tif", format = "GTiff", overwrite=T)
-writeRaster(year_SouthAsia, filename = "Diagnostic Continent Maps/Year_SouthAsia.tif", format = "GTiff", overwrite=T) 
+writeRaster(year_SouthAsia, filename = "Diagnostic Continent Maps/Year_SouthAsia.tif", format = "GTiff", overwrite=T)
+writeRaster(year_LeftHemisphere, filename = "Diagnostic Continent Maps/Year_LeftHemisphere.tif", format = "GTiff", overwrite=T) 
+writeRaster(year_RightHemisphere, filename = "Diagnostic Continent Maps/Year_RightHemisphere.tif", format = "GTiff", overwrite=T) 
+writeRaster(year_Globe, filename = "Diagnostic Continent Maps/Year_Globe.tif", format = "GTiff", overwrite=T) 
 
 writeRaster(photo_SouthAmerica, filename = "Diagnostic Continent Maps/Photo_SouthAmerica.tif", format = "GTiff", overwrite=T)
 writeRaster(photo_NorthAmerica, filename = "Diagnostic Continent Maps/Photo_NorthAmerica.tif", format = "GTiff", overwrite=T)
@@ -94,45 +164,27 @@ writeRaster(photo_Europe, filename = "Diagnostic Continent Maps/Photo_Europe.tif
 writeRaster(photo_Europe_noRussia, filename = "Diagnostic Continent Maps/Photo_Europe_noRussia.tif", format = "GTiff", overwrite=T)
 writeRaster(photo_Asia, filename = "Diagnostic Continent Maps/Photo_Asia.tif", format = "GTiff", overwrite=T)
 writeRaster(photo_SouthAsia, filename = "Diagnostic Continent Maps/Photo_SouthAsia.tif", format = "GTiff", overwrite=T) 
+writeRaster(photo_LeftHemisphere, filename = "Diagnostic Continent Maps/Photo_LeftHemisphere.tif", format = "GTiff", overwrite=T) 
+writeRaster(photo_RightHemisphere, filename = "Diagnostic Continent Maps/Photo_RightHemisphere.tif", format = "GTiff", overwrite=T) 
+writeRaster(photo_Globe, filename = "Diagnostic Continent Maps/Photo_Globe.tif", format = "GTiff", overwrite=T) 
 
 writeRaster(precip_Africa, filename = "Diagnostic Continent Maps/Precip_Africa.tif", format = "GTiff", overwrite=T)
+writeRaster(precip_RightHemisphere, filename = "Diagnostic Continent Maps/Precip_RightHemisphere.tif", format = "GTiff", overwrite=T) 
+writeRaster(precip_Globe, filename = "Diagnostic Continent Maps/Precip_Globe.tif", format = "GTiff", overwrite=T) 
 
 
 
-#------------------------------------------------------
-# Create covariate-stacked and activity season-restricted diagnostic continent maps for troubleshooting
-#------------------------------------------------------
-map_NorthAmerica <- crop(predictor_sum_yearRound, extent(NorthAmerica)) %>%
-  mask(NorthAmerica)
-map_SouthAmerica <- crop(predictor_sum_yearRound, extent(SouthAmerica)) %>%
-  mask(SouthAmerica)
-map_Africa <- crop(predictor_sum_yearRound, extent(Africa)) %>%
-  mask(Africa)
-map_Oceania <- crop(predictor_sum_yearRound, extent(Oceania)) %>%
-  mask(Oceania)
-map_Europe <- crop(predictor_sum_yearRound, extent(Europe)) %>%
-  mask(Europe)
-map_Europe_noRussia <- crop(predictor_sum_yearRound, extent(Europe_noRussia)) %>%
-  mask(Europe_noRussia)
-map_Asia <- crop(predictor_sum_yearRound, extent(Asia)) %>%
-  mask(Asia)
-map_SouthAsia <- crop(predictor_sum_yearRound, extent(SouthAsia)) %>%
-  mask(SouthAsia)
 
-writeRaster(map_NorthAmerica, filename = "Diagnostic Continent Maps/NorthAmerica_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_SouthAmerica, filename = "Diagnostic Continent Maps/SouthAmerica_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_Africa, filename = "Diagnostic Continent Maps/Africa_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_Oceania, filename = "Diagnostic Continent Maps/Oceania_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_Europe, filename = "Diagnostic Continent Maps/Europe_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_Europe_noRussia, filename = "Diagnostic Continent Maps/Europe_noRussia_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_Asia, filename = "Diagnostic Continent Maps/Asia_DiagnosticMap.tif", format = "GTiff", overwrite=T)
-writeRaster(map_SouthAsia, filename = "Diagnostic Continent Maps/SouthAsia_DiagnosticMap.tif", format = "GTiff", overwrite=T) 
 
 
 
 #------------------------------------------------------
-# Diagnostic 1: Thermal breadth of occurrences and random points by species by continent
+## RUN DIAGNOSTICS ##
 #------------------------------------------------------
+#------------------------------------------------------
+# Diagnostic 1: Thermal breadth of occurrences and background by species by continent
+#------------------------------------------------------
+
 
 # ?? for loop, feed in select species' points, restricted to that continent, extract(), hist()
 remove_df <- c(which(is.na(raster::extract(sampling_ranges[[i]], occGPS_activity_noNA))))
@@ -176,7 +228,7 @@ tam_aegypti_SouthAmerica_bg <- enmSdm::sampleRast(year_SouthAmerica, n = 10000, 
   as.data.frame()
 tam_aegypti_Africa_bg <- enmSdm::sampleRast(year_Africa, n = 10000, replace = F, prob = F) %>%
   as.data.frame()
-tam_aegypti_Asia_bg <- enmSdm::sampleRast(year_Asia, n = 10000, replace = F, prob = F) %>% ## ?? aegypti is southeast asia in reality
+tam_aegypti_Asia_bg <- enmSdm::sampleRast(year_Asia, n = 10000, replace = F, prob = F) %>%
   as.data.frame()  
 tam_aegypti_Oceania_bg <- enmSdm::sampleRast(year_Oceania, n = 10000, replace = F, prob = F) %>%
   as.data.frame()
