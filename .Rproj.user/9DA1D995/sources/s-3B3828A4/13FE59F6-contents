@@ -19,7 +19,8 @@ SouthAmerica_list <- c("Colombia", "Venezuela", "Suriname", "Guyana", "French Gu
                        "Ecuador", "Peru", "Bolivia", "Chile", "Argentina", "Uruguay",
                        "Paraguay", "Brazil", "Falkland Islands (Malvinas)")
 SouthAmerica <- wrld_simpl[wrld_simpl$NAME %in% SouthAmerica_list, ]
-NorthAmerica <- wrld_simpl[wrld_simpl$REGION==19,] %>% .[!NorthAmerica$NAME %in% SouthAmerica_list, ]
+NorthAmerica <- wrld_simpl[wrld_simpl$REGION==19,]
+NorthAmerica %<>% .[!NorthAmerica$NAME %in% SouthAmerica_list, ]
 Africa <- wrld_simpl[wrld_simpl$REGION==2,]
 Oceania <- wrld_simpl[wrld_simpl$REGION==9,]
 Europe <- wrld_simpl[wrld_simpl$REGION==150,]
@@ -80,65 +81,65 @@ predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
 # Year round
 #------------------------------------------------------
 year_SouthAmerica <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(SouthAmerica)) %>% mask(SouthAmerica)
+  crop(extent(SouthAmerica)) %>% mask(SouthAmerica)
 year_NorthAmerica <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(NorthAmerica)) %>% mask(NorthAmerica)
+  crop(extent(NorthAmerica)) %>% mask(NorthAmerica)
 year_Africa <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(Africa)) %>% mask(Africa)
+  crop(extent(Africa)) %>% mask(Africa)
 year_Oceania <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(Oceania)) %>% mask(Oceania)
+  crop(extent(Oceania)) %>% mask(Oceania)
 year_Europe <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(Europe)) %>% mask(Europe)
+  crop(extent(Europe)) %>% mask(Europe)
 year_Europe_noRussia <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(Europe_noRussia)) %>% mask(Europe_noRussia)
+  crop(extent(Europe_noRussia)) %>% mask(Europe_noRussia)
 year_Asia <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(Asia)) %>% mask(Asia)
+  crop(extent(Asia)) %>% mask(Asia)
 year_SouthAsia <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(SouthAsia)) %>% mask(SouthAsia)
+  crop(extent(SouthAsia)) %>% mask(SouthAsia)
 year_LeftHemisphere <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(LeftHemisphere)) %>% mask(LeftHemisphere)
+  crop(extent(LeftHemisphere)) %>% mask(LeftHemisphere)
 year_RightHemisphere <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(RightHemisphere)) %>% mask(RightHemisphere)
+  crop(extent(RightHemisphere)) %>% mask(RightHemisphere)
 year_Globe <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
-  crop(., extent(Globe)) %>% mask(Globe)
+  crop(extent(Globe)) %>% mask(Globe)
 
 
 #------------------------------------------------------
 # Photoperiod activity season
 #------------------------------------------------------
 photo_SouthAmerica <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(SouthAmerica)) %>% mask(SouthAmerica)
+  crop(extent(SouthAmerica)) %>% mask(SouthAmerica)
 photo_NorthAmerica <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(NorthAmerica)) %>% mask(NorthAmerica)
+  crop(extent(NorthAmerica)) %>% mask(NorthAmerica)
 photo_Africa <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(Africa)) %>% mask(Africa)
+  crop(extent(Africa)) %>% mask(Africa)
 photo_Oceania <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(Oceania)) %>% mask(Oceania)
+  crop(extent(Oceania)) %>% mask(Oceania)
 photo_Europe <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(Europe)) %>% mask(Europe)
+  crop(extent(Europe)) %>% mask(Europe)
 photo_Europe_noRussia <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(Europe_noRussia)) %>% mask(Europe_noRussia)
+  crop(extent(Europe_noRussia)) %>% mask(Europe_noRussia)
 photo_Asia <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(Asia)) %>% mask(Asia)
+  crop(extent(Asia)) %>% mask(Asia)
 photo_SouthAsia <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(SouthAsia)) %>% mask(SouthAsia)
+  crop(extent(SouthAsia)) %>% mask(SouthAsia)
 photo_LeftHemisphere <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(LeftHemisphere)) %>% mask(LeftHemisphere)
+  crop(extent(LeftHemisphere)) %>% mask(LeftHemisphere)
 photo_RightHemisphere <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(RightHemisphere)) %>% mask(RightHemisphere)
+  crop(extent(RightHemisphere)) %>% mask(RightHemisphere)
 photo_Globe <- predictors_photoSeason %>% mask(predictor_sum_photoSeason) %>%
-  crop(., extent(Globe)) %>% mask(Globe)
+  crop(extent(Globe)) %>% mask(Globe)
 
 
 #------------------------------------------------------
 # Precipitation activity season
 #------------------------------------------------------
 precip_Africa <- predictors_precipSeason %>% mask(predictor_sum_precipSeason) %>%
-  crop(., extent(Africa)) %>% mask(Africa)
+  crop(extent(Africa)) %>% mask(Africa)
 precip_RightHemisphere <- predictors_precipSeason %>% mask(predictor_sum_precipSeason) %>%
-  crop(., extent(RightHemisphere)) %>% mask(RightHemisphere)
+  crop(extent(RightHemisphere)) %>% mask(RightHemisphere)
 precip_Globe <- predictors_precipSeason %>% mask(predictor_sum_precipSeason) %>%
-  crop(., extent(Globe)) %>% mask(Globe)
+  crop(extent(Globe)) %>% mask(Globe)
 
 
 #------------------------------------------------------
