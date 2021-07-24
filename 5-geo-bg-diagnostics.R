@@ -80,6 +80,9 @@ predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
 #------------------------------------------------------
 # Year round
 #------------------------------------------------------
+## ?? run --> save --> check memory --> remove from environment --> see memory
+## ?? put saving adjacent to the making
+
 year_SouthAmerica <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
   crop(extent(SouthAmerica)) %>% mask(SouthAmerica)
 year_NorthAmerica <- predictors_yearRound %>% mask(predictor_sum_yearRound) %>%
@@ -175,6 +178,20 @@ writeRaster(precip_Globe, filename = "Diagnostic Continent Maps/Precip_Globe.tif
 
 
 
+
+#------------------------------------------------------
+## ZOOGEOGRAPHIC REGIONS ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Load in ArcGIS shapefiles from Holt et al., 2013 and convert into WGS84 sp format
+# https://macroecology.ku.dk/resources/wallace
+#------------------------------------------------------
+zoogeo_regions <- read_sf(dsn = "./Zoogeographic Regions", layer = "Regions") %>%
+  as("Spatial") %>%
+  spTransform(CRS("+proj=longlat +datum=WGS84 +no_defs"))
+zoogeo_realms <- read_sf(dsn = "./Zoogeographic Regions", layer = "newRealms") %>%
+  as("Spatial") %>%
+  spTransform(CRS("+proj=longlat +datum=WGS84 +no_defs"))
 
 
 
