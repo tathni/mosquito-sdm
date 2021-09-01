@@ -29,7 +29,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   predictors <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PWQ","TAM","TASD")
   
-  # ???? make TAM/TASD for year-round species, Precip for gambiae, etc.
+  # ???? make TAM/TASD for year-round species, Precip for gambiae, etc. with if loops
   
   
   
@@ -62,7 +62,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
                  nfold = 5,
                  early_stopping_rounds = 10,
                  verbose = T)
-    list(Score = -unlist(cv$evaluation_log[cv$best_iteration, "test_rmse_mean"]), # Ensure score is negative, since optimization maximizes
+    list(Score = -unlist(cv$evaluation_log[cv$best_iteration, "test_logloss_mean"]), # Ensure score is negative, since optimization maximizes
          Pred = cv$pred,
          cb.print.evaluation(period = 1))
   }
