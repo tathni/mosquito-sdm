@@ -3,7 +3,7 @@
     "path": "~/GitHub/mosquito-sdm/0-config.R",
     "project_path": "0-config.R",
     "type": "r_source",
-    "hash": "2926597791",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1626470588696.0,
@@ -11,7 +11,8 @@
     "relative_order": 1,
     "properties": {
         "cursorPosition": "34,15",
-        "scrollLine": "20"
+        "scrollLine": "0",
+        "Source": "Source"
     },
     "folds": "",
     "lastKnownWriteTime": 1627084871,

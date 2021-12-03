@@ -33,6 +33,7 @@ library(rgdal)
 library(sf)
 library(sp)
 library(spThin)
+library(spdep)
 
 
 #------------------------------------------------------

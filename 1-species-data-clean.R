@@ -26,7 +26,7 @@ decimalNums <- function(x) {
 ## SPECIES OF INTEREST CLEANING ##
 #------------------------------------------------------
 #------------------------------------------------------
-# Read in distinct mosquito species datasets from GBIF, Atlas of Living Australia, Sinka, and Wiebe
+# Read in distinct mosquito species datasets from GBIF
 #------------------------------------------------------
 Mosquitoes_SpeciesOfInterest_Raw <- rbind(
   read.csv("GBIF Datasets Raw/AedesAegypti_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
@@ -38,6 +38,10 @@ Mosquitoes_SpeciesOfInterest_Raw <- rbind(
   read.csv("GBIF Datasets Raw/CulexQuinquefasciatus_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/CulexTarsalis_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
 )
+
+#------------------------------------------------------
+# For species with low occurrences, bulk up species with fewest occurrences from Atlas of Living Australia, Sinka, and Wiebe
+#------------------------------------------------------
 Mosquitoes_AtlasAustralia_Raw <- read.csv("GBIF Datasets Raw/CulexAnnulirostris_ALA.csv", sep = ",", header = T, encoding = "UTF-8", stringsAsFactors = F)
 Mosquitoes_Sinka_Raw <- read.csv("GBIF Datasets Raw/AnophelesStephensi_Sinka2020.csv", sep = ",", header = T, stringsAsFactors = F)
 Mosquitoes_Wiebe_Raw <- read_excel("GBIF Datasets Raw/AnophelesGambiae_Wiebe2017.xlsx", sheet=7)
@@ -198,6 +202,7 @@ Mosquitoes_CulexAnnulirostris <- rbind(Mosquitoes_GBIFAnnulirostris, Mosquitoes_
 
 
 # ??? change this filtering to the expert opinion (EO) range from Sinka et al., 2020
+
 #------------------------------------------------------
 # Clean the Sinka dataset for Anopheles stephensi, limited to native range of South Asia
 # Points found within the mosquito's invasive range of Middle East and Africa are not included

@@ -85,6 +85,15 @@ speciesList <- c("AedesAegypti",
                   "CulexQuinquefasciatus",
                   "CulexTarsalis")
 
+SpeciesOfInterest_Names <- c("Aedes aegypti",
+                             "Aedes albopictus",
+                             "Anopheles gambiae",
+                             "Anopheles stephensi",
+                             "Culex annulirostris",
+                             "Culex pipiens",
+                             "Culex quinquefasciatus",
+                             "Culex tarsalis")
+
 trainingList <- c("AedesAegypti_TrainOcc",
                   "AedesAlbopictus_TrainOcc",
                   "AnophelesGambiae_TrainOcc",
