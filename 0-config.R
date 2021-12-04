@@ -34,6 +34,7 @@ library(sf)
 library(sp)
 library(spThin)
 library(spdep)
+library(geosphere)
 
 
 #------------------------------------------------------

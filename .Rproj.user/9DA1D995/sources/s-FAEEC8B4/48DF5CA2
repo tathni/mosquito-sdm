@@ -12,15 +12,16 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "116,51",
-        "scrollLine": "94"
+        "cursorPosition": "168,0",
+        "scrollLine": "104",
+        "ignored_words": "dataframe\n"
     },
     "folds": "",
-    "lastKnownWriteTime": 1638519554,
+    "lastKnownWriteTime": 1638591588,
     "encoding": "ISO8859-1",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1638519554978,
+    "last_content_update": 1638591588150,
     "read_only": false,
     "read_only_alternatives": []
 }
