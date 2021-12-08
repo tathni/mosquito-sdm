@@ -1,19 +1,17 @@
 {
-    "id": "289B215B",
-    "path": "E:/Downloads/5a-ecoregions.R",
-    "project_path": null,
+    "id": "F0262248",
+    "path": "~/GitHub/mosquito-sdm/5a-ecoregions.R",
+    "project_path": "5a-ecoregions.R",
     "type": "r_source",
     "hash": "3535909509",
     "contents": "",
     "dirty": false,
-    "created": 1639002088025.0,
+    "created": 1639003299617.0,
     "source_on_save": false,
-    "relative_order": 4,
+    "relative_order": 2,
     "properties": {
         "source_window_id": "",
-        "Source": "Source",
-        "cursorPosition": "21,29",
-        "scrollLine": "16"
+        "Source": "Source"
     },
     "folds": "",
     "lastKnownWriteTime": 1639002923,
