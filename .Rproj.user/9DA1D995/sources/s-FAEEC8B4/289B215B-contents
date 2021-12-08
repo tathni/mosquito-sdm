@@ -5,15 +5,33 @@
 # Description: Create ecoregion-based sampling range maps
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
-setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
+sherlock = TRUE # If running on Sherlock remote computing cluster
+testing = TRUE # For testing purposes, set testing = T, which will allow things to run faster while debugging
+
+
+if(sherlock == TRUE){
+  library(dplyr)
+  library(magrittr)
+  library(raster)
+  library(geosphere)
+  seedNum <- 250
+  
+  # Use the command line arguments supplied to set which species we'll be running 
+  if(Sys.getenv('SLURM_JOB_ID') != ""){
+    args <- commandArgs(TRUE) 
+    species_inds <- as.numeric(args[1]) 
+  } 
+  
+} else {
+  source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+  setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
+  species_inds <- 1:7 
+}
 
 
 #------------------------------------------------------
 # Load in lists and ecoregions
 #------------------------------------------------------
-tic <- Sys.time()
-
 speciesList <- c("AedesAegypti",
                  "AedesAlbopictus",
                  "AnophelesGambiae",
@@ -30,20 +48,16 @@ SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Culex quinquefasciatus",
                              "Culex tarsalis")
 
-ecoregions <- read_sf(dsn = "./RESOLVE Ecoregions/Ecoregions2017", layer = "Ecoregions2017") %>%
-  as("Spatial") %>%
-  spTransform(CRS("+proj=longlat +datum=WGS84 +no_defs"))
+ecoregions <- read_sf(dsn = "./RESOLVE Ecoregions/Ecoregions2017", layer = "Ecoregions2017")
 
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
 
 
 #------------------------------------------------------
-# Convert ecoregions into sf format
+# Tidy and validate the sf geometry of ecoregions
 #------------------------------------------------------
-ecoregions_st <- ecoregions
-ecoregions_sf <- ecoregions_st %>% st_as_sf()
-ecoregions_sf %>% st_is_valid()
+ecoregions_sf <- ecoregions %>% st_is_valid()
 ecoregions_sf %<>% st_make_valid()
 
 
@@ -77,7 +91,7 @@ geosphere_buffer <- function(sf_points,
 #------------------------------------------------------
 # Run loop through each species
 #------------------------------------------------------
-for(i in 1:length(SpeciesOfInterest_Names)) {
+for(i in species_inds) {
   
   #------------------------------------------------------
   # Acquire occurrence points
@@ -88,17 +102,21 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   occGPS <- dplyr::select(thisSpecies, c(decimalLongitude, decimalLatitude))
   
   occGPS_sf <- st_as_sf(occGPS, coords = c("decimalLongitude", "decimalLatitude"), 
-                   crs = 4326, agr = "constant")
+                        crs = 4326, agr = "constant")
   
   
   #------------------------------------------------------
-  # Buffer occurrence points with 200 km
+  # Call function to buffer occurrence points with 200 km
   #------------------------------------------------------
   occGPS_buffered <- geosphere_buffer(occGPS_sf, dist = 200000)
   st_crs(occGPS_buffered) <- "+proj=longlat +datum=WGS84 +no_defs" 
   paste0("[",SpeciesOfInterest_Names[i],"]: Buffered the points")
   
-
+  if(testing == TRUE){
+    occGPS_buffered = occGPS_buffered[1:100,]
+  }
+  
+  
   #------------------------------------------------------
   # Create a dataframe with start and end indices to loop through the rows
   # Splits up intersecting into smaller component tasks to save computation time
@@ -142,6 +160,11 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   plot(st_geometry(occGPS_sf), col="red", add=T)
   dev.off()
   
+  png(paste0("Ecoregion Outputs/Ecoregions_",speciesList[i],"_Bufffered.png"), width=1000, height=1000)
+  plot(st_geometry(ecoregion_cut))
+  plot(st_geometry(occGPS_buffered), col="red", add=T)
+  dev.off()
+  
   png(paste0("Ecoregion Outputs/Ecoregions_",speciesList[i],".png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   dev.off()
@@ -164,10 +187,9 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 #------------------------------------------------------
 # Load in Gambiae ecoregion data for diagnostic check
 #------------------------------------------------------
-gambiae_shapefile <- readRDS("Ecoregion Outputs/Shapefile_AnophelesGambiae.RDS")
-gambiae_points <- readRDS("Ecoregion Outputs/BufferedPoints_AnophelesGambiae.RDS")
-
-ggplot(gambiae_shapefile) + geom_sf()
+# gambiae_shapefile <- readRDS("Ecoregion Outputs/Shapefile_AnophelesGambiae.RDS")
+# gambiae_points <- readRDS("Ecoregion Outputs/BufferedPoints_AnophelesGambiae.RDS")
+# ggplot(gambiae_shapefile) + geom_sf()
 
 
 

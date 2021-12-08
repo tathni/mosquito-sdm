@@ -1,0 +1,166 @@
+---
+title: "CA5_PV_code"
+author: "Panos Vandris"
+date: "11/30/2021"
+output: word_document
+---
+
+```{r}
+## Read in the data; validation study done on smoking at time 1; truth=smoke_true
+library(readr)
+fdata <- read_csv("~/OneDrive - Stanford/Stanford/Coterm/EPI 227/Data/frmgham2_wide_validation.csv")
+head(fdata)
+dim(fdata)
+```
+
+```{r}
+## Subset data into men and women
+fdata_men<-fdata[fdata$sex==1,]
+dim(fdata_men)
+fdata_women<-fdata[fdata$sex==2,]
+```
+
+```{r}
+## Run logistic regression model of smoking at time 1 and death over follow-up
+model<-glm(cvd~cursmoke1, family=binomial, data=fdata)
+summary(model)
+exp(model$coef[2])
+```
+
+```{r}
+## Calculate the PPV, NPV, and cell size of cursmoke1 overall
+N_nosmoke<-table(fdata$cursmoke1)[1]
+N_smoke<-table(fdata$cursmoke1)[2]
+
+prop.table(table(fdata$cursmoke1, fdata$smoke_true),1)
+PPV<-0.8956198
+NPV<-0.7683566
+```
+
+```{r}
+## Run the PBA
+
+set.seed(7788)
+iter <- 1000
+n<-dim(fdata)[1]
+PPV.boot<-NPV.boot<-coef.boot<-rep(NA, iter)
+
+
+for (i in 1:iter){
+  samp <- sample(n,n,replace=T)
+  fdata.boot <- fdata[samp,]
+  
+  fdata.boot$random<-runif(n)
+  
+  # This step samples the PPV and NPV from a binomial distribution
+  PPV.boot[i]<-rbinom(1,N_smoke, PPV)/N_smoke
+  NPV.boot[i]<-rbinom(1,N_nosmoke, NPV)/N_nosmoke
+
+  # This ensures that sample ppv and npv are maintained
+  fdata.boot$reclass_smoke<-fdata.boot$cursmoke1
+  
+  fdata.boot$reclass_smoke[fdata.boot$cursmoke1==1]<-ifelse(fdata.boot$random[fdata.boot$cursmoke1==1]>PPV.boot[i],0,1)
+  fdata.boot$reclass_smoke[fdata.boot$cursmoke1==0]<-ifelse(fdata.boot$random[fdata.boot$cursmoke1==0]>NPV.boot[i],1,0)
+  
+  model.boot<-glm(cvd~reclass_smoke, family=binomial, data=fdata.boot)
+  coef.boot[i]<-model.boot$coef[2]
+}
+
+
+OR<-exp(mean(coef.boot))
+se<-sd(coef.boot)
+#This illustrates how to derive the empirical confidence interval
+CI<-cbind(quantile(coef.boot, 0.025), quantile(coef.boot,0.975))
+cbind(OR, se, exp(CI))
+```
+
+```{r}
+## Calculate the PPV, NPV, and cell size of cursmoke1 by sex
+N_nosmoke_men<-table(fdata_men$cursmoke1)[1]
+N_smoke_men<-table(fdata_men$cursmoke1)[2]
+
+prop.table(table(fdata_men$cursmoke1, fdata_men$smoke_true),1)
+PPV_men<-0.90169492
+NPV_men<-0.66071429
+
+N_nosmoke_women<-table(fdata_women$cursmoke1)[1]
+N_smoke_women<-table(fdata_women$cursmoke1)[2]
+
+prop.table(table(fdata_women$cursmoke1, fdata_women$smoke_true),1)
+PPV_women<-0.8881988
+NPV_women<-0.8244681
+```
+
+```{r}
+## Run the PBA for men
+
+set.seed(7788)
+iter <- 1000
+n<-dim(fdata_men)[1]
+PPV.boot_men<-NPV.boot_men<-coef.boot_men<-rep(NA, iter)
+
+
+for (i in 1:iter){
+  samp <- sample(n,n,replace=T)
+  fdata.boot_men <- fdata_men[samp,]
+  
+  fdata.boot_men$random<-runif(n)
+  
+  # This step samples the PPV and NPV from a binomial distribution
+  PPV.boot_men[i]<-rbinom(1,N_smoke_men, PPV_men)/N_smoke_men
+  NPV.boot_men[i]<-rbinom(1,N_nosmoke_men, NPV_men)/N_nosmoke_men
+
+  # This ensures that sample ppv and npv are maintained
+  fdata.boot_men$reclass_smoke<-fdata.boot_men$cursmoke1
+  
+  fdata.boot_men$reclass_smoke[fdata.boot_men$cursmoke1==1]<-ifelse(fdata.boot_men$random[fdata.boot_men$cursmoke1==1]>PPV.boot_men[i],0,1)
+  fdata.boot_men$reclass_smoke[fdata.boot_men$cursmoke1==0]<-ifelse(fdata.boot_men$random[fdata.boot_men$cursmoke1==0]>NPV.boot_men[i],1,0)
+  
+  model.boot_men<-glm(cvd~reclass_smoke, family=binomial, data=fdata.boot_men)
+  coef.boot_men[i]<-model.boot_men$coef[2]
+}
+
+
+OR_men<-exp(mean(coef.boot_men))
+se_men<-sd(coef.boot_men)
+#This illustrates how to derive the empirical confidence interval
+CI_men<-cbind(quantile(coef.boot_men, 0.025), quantile(coef.boot_men,0.975))
+cbind(OR_men, se_men, exp(CI_men))
+```
+
+```{r}
+## Run the PBA for women
+
+set.seed(7788)
+iter <- 1000
+n<-dim(fdata_women)[1]
+PPV.boot_women<-NPV.boot_women<-coef.boot_women<-rep(NA, iter)
+
+
+for (i in 1:iter){
+  samp <- sample(n,n,replace=T)
+  fdata.boot_women <- fdata_women[samp,]
+  
+  fdata.boot_women$random<-runif(n)
+  
+  # This step samples the PPV and NPV from a binomial distribution
+  PPV.boot_women[i]<-rbinom(1,N_smoke_women, PPV_women)/N_smoke_women
+  NPV.boot_women[i]<-rbinom(1,N_nosmoke_women, NPV_women)/N_nosmoke_women
+
+  # This ensures that sample ppv and npv are maintained
+  fdata.boot_women$reclass_smoke<-fdata.boot_women$cursmoke1
+  
+  fdata.boot_women$reclass_smoke[fdata.boot_women$cursmoke1==1]<-ifelse(fdata.boot_women$random[fdata.boot_women$cursmoke1==1]>PPV.boot_women[i],0,1)
+  fdata.boot_women$reclass_smoke[fdata.boot_women$cursmoke1==0]<-ifelse(fdata.boot_women$random[fdata.boot_women$cursmoke1==0]>NPV.boot_women[i],1,0)
+  
+  model.boot_women<-glm(cvd~reclass_smoke, family=binomial, data=fdata.boot_women)
+  coef.boot_women[i]<-model.boot_women$coef[2]
+}
+
+
+OR_women<-exp(mean(coef.boot_women))
+se_women<-sd(coef.boot_women)
+#This illustrates how to derive the empirical confidence interval
+CI_women<-cbind(quantile(coef.boot_women, 0.025), quantile(coef.boot_women,0.975))
+cbind(OR_women, se_women, exp(CI_women))
+```
