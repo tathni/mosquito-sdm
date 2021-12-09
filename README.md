@@ -9,7 +9,8 @@
 * 2-thermal-lab-curves.R: 
 * 3-gee-raster-merge.R: 
 * 4-sampling-maps.R:
-* 5-geo-bg-diagnostics.R:
+* 5a-ecoregions.R:
+* 5b-ecoregions-intersect.R:
 * 6-raster-data-extraction.R: 
 * 7-raster-summary-figures.R: 
 * 8-xgboost-model.R: 
