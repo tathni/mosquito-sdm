@@ -5,22 +5,18 @@
 # Description: Create ecoregion-based sampling range maps
 #######################################################
 
-sherlock = TRUE # If running on Sherlock remote computing cluster
 testing = TRUE # For testing purposes, set testing = T, which will allow things to run faster while debugging
 
 
-if(sherlock == TRUE){
+if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on sherlock remote computing cluster
   library(dplyr)
   library(magrittr)
-  library(raster)
   library(geosphere)
-  seedNum <- 250
-  
+  library(sf)
+
   # Use the command line arguments supplied to set which species we'll be running 
-  if(Sys.getenv('SLURM_JOB_ID') != ""){
-    args <- commandArgs(TRUE) 
-    species_inds <- as.numeric(args[1]) 
-  } 
+  args <- commandArgs(TRUE) 
+  species_inds <- as.numeric(args[1]) 
   
 } else {
   source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
@@ -48,9 +44,9 @@ SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Culex quinquefasciatus",
                              "Culex tarsalis")
 
-ecoregions <- read_sf(dsn = "./RESOLVE Ecoregions/Ecoregions2017", layer = "Ecoregions2017")
+ecoregions <- read_sf(dsn = "./RESOLVE_Ecoregions/Ecoregions2017", layer = "Ecoregions2017")
 
-Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
+Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
 
 
@@ -155,17 +151,17 @@ for(i in species_inds) {
   #------------------------------------------------------
   # Save ecoregion maps, with and without points plotted
   #------------------------------------------------------
-  png(paste0("Ecoregion Outputs/Ecoregions_",speciesList[i],"_Dots.png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Dots.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_sf), col="red", add=T)
   dev.off()
   
-  png(paste0("Ecoregion Outputs/Ecoregions_",speciesList[i],"_Bufffered.png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Bufffered.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_buffered), col="red", add=T)
   dev.off()
   
-  png(paste0("Ecoregion Outputs/Ecoregions_",speciesList[i],".png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],".png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   dev.off()
   
@@ -173,9 +169,9 @@ for(i in species_inds) {
   #------------------------------------------------------
   # Save shapefile, indices, and buffered points
   #------------------------------------------------------
-  saveRDS(ecoregion_cut, paste0("Ecoregion Outputs/Shapefile_",speciesList[i],".RDS"))
-  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion Outputs/Indices_",speciesList[i],".RDS"))
-  saveRDS(occGPS_sf, paste0("Ecoregion Outputs/BufferedPoints_",speciesList[i],".RDS"))
+  saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
+  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
+  saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
   
   toc <- Sys.time()
   toc - tic

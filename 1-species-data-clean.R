@@ -466,9 +466,9 @@ Mosquitoes_SpeciesOfInterest <- rbind(Mosquitoes_SpeciesOfInterest, Mosquitoes_C
 #------------------------------------------------------
 # Write CSV files containing cleaned datasets for use in modeling
 #------------------------------------------------------
-write.csv(Mosquitoes_SpeciesOfInterest, file = "GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest.csv", row.names = F)
-write.csv(Background_Culicidae, file = "GBIF Datasets Cleaned/Background_Culicidae.csv", row.names = F)
-write.csv(Background_Culicidae_Australia, file = "GBIF Datasets Cleaned/Background_Culicidae_Australia_Supplement.csv", row.names = F)
+write.csv(Mosquitoes_SpeciesOfInterest, file = "GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", row.names = F)
+write.csv(Background_Culicidae, file = "GBIF_Datasets_Cleaned/Background_Culicidae.csv", row.names = F)
+write.csv(Background_Culicidae_Australia, file = "GBIF_Datasets_Cleaned/Background_Culicidae_Australia_Supplement.csv", row.names = F)
 # write.csv(Background_Superfamily, file = "GBIF Datasets Cleaned/Background_Superfamily_Cleaned.csv", row.names = F)
 
 

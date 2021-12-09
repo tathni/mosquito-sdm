@@ -16,11 +16,11 @@ setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Th
 # Load in mosquito occurrences
 #------------------------------------------------------
 print(paste0("Loading in mosquito occurrence data"))
-Mosquitoes_SpeciesOfInterest <- read.csv("GBIF Datasets Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
+Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
-Background_Culicidae <- read.csv("GBIF Datasets Cleaned/Background_Culicidae.csv", header = TRUE,
+Background_Culicidae <- read.csv("GBIF_Datasets_Cleaned/Background_Culicidae.csv", header = TRUE,
                                  encoding = "UTF-8", stringsAsFactors = FALSE)
-Background_Culicidae_Australia_Supplement <- read.csv("GBIF Datasets Cleaned/Background_Culicidae_Australia_Supplement.csv",
+Background_Culicidae_Australia_Supplement <- read.csv("GBIF_Datasets_Cleaned/Background_Culicidae_Australia_Supplement.csv",
                                                       header = TRUE, encoding = "UTF-8", stringsAsFactors = FALSE)
 
 #------------------------------------------------------
