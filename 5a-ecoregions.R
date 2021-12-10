@@ -5,7 +5,7 @@
 # Description: Create ecoregion-based sampling range maps
 #######################################################
 
-testing = TRUE # For testing purposes, set testing = T, which will allow things to run faster while debugging
+testing = FALSE # For testing purposes, set testing = TRUE, which will allow things to run faster while debugging
 
 
 if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on sherlock remote computing cluster
