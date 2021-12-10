@@ -5,7 +5,7 @@
 # Description: Create ecoregion-based sampling range maps
 #######################################################
 
-testing = FALSE # For testing purposes, set testing = TRUE, which will allow things to run faster while debugging
+testing = TRUE # For testing purposes, set testing = TRUE, which will allow things to run faster while debugging
 
 
 if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on sherlock remote computing cluster
@@ -28,6 +28,7 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on sherlo
 #------------------------------------------------------
 # Load in lists and ecoregions
 #------------------------------------------------------
+tic <- Sys.time()
 speciesList <- c("AedesAegypti",
                  "AedesAlbopictus",
                  "AnophelesGambiae",
@@ -48,13 +49,18 @@ ecoregions <- read_sf(dsn = "./RESOLVE_Ecoregions/Ecoregions2017", layer = "Ecor
 
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
+toc <- Sys.time()
+print(paste0("Loaded in lists and ecoregions in ",(toc - tic) %>% round(4)," seconds"))
 
 
 #------------------------------------------------------
 # Tidy and validate the sf geometry of ecoregions
 #------------------------------------------------------
+tic <- Sys.time()
 ecoregions_check <- ecoregions %>% st_is_valid()
 ecoregions_sf <- ecoregions %>% st_make_valid()
+toc <- Sys.time()
+print(paste0("Tidied and validated sf geometry of ecoregions in ",(toc - tic) %>% round(4)," seconds"))
 
 
 #------------------------------------------------------
@@ -92,7 +98,6 @@ for(i in species_inds) {
   #------------------------------------------------------
   # Acquire occurrence points
   #------------------------------------------------------
-  tic <- Sys.time()
   thisSpecies <- filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[i])
   paste0("The species of interest is: ", SpeciesOfInterest_Names[i])
   occGPS <- dplyr::select(thisSpecies, c(decimalLongitude, decimalLatitude))
@@ -104,13 +109,17 @@ for(i in species_inds) {
   #------------------------------------------------------
   # Call function to buffer occurrence points with 200 km
   #------------------------------------------------------
+  if(testing == TRUE){
+    occGPS_sf <- occGPS_sf[1:100,]
+  }
+  
+  tic <- Sys.time()
   occGPS_buffered <- geosphere_buffer(occGPS_sf, dist = 200000)
   st_crs(occGPS_buffered) <- "+proj=longlat +datum=WGS84 +no_defs" 
-  paste0("[",SpeciesOfInterest_Names[i],"]: Buffered the points")
+  toc <- Sys.time()
+  print(paste0("Buffered the occurrence points in ",(toc - tic) %>% round(4)," seconds"))
   
-  if(testing == TRUE){
-    occGPS_buffered = occGPS_buffered[1:100,]
-  }
+  
   
   
   #------------------------------------------------------
@@ -129,6 +138,7 @@ for(i in species_inds) {
   #------------------------------------------------------
   # Piece-wise intersecting all ecoregions with buffered points
   #------------------------------------------------------
+  tic <- Sys.time()
   for(k in 1:nrow(indices)) {
     ecoregions_temp <- st_intersects(ecoregions_sf, occGPS_buffered[indices[k,1]:indices[k,2],])
     ecoregion_inds <- c(ecoregion_inds, 
@@ -138,25 +148,40 @@ for(i in species_inds) {
   }
   
   ecoregion_intersected_inds <- ecoregion_inds %>% Reduce("c", .) %>% unique
-  paste0("[",SpeciesOfInterest_Names[i],"]: Intersected ecoregions with buffered points")
+  toc <- Sys.time()
+  print(paste0("Intersected ecoregions with buffered points in ",(toc - tic) %>% round(4)," seconds"))
   
   
   #------------------------------------------------------
   # Select and union the intersected ecoregions
   #------------------------------------------------------
+  tic <- Sys.time()
   ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_union
-  paste0("[",SpeciesOfInterest_Names[i],"]: Selected and unioned the ecoregions")
+  toc <- Sys.time()
+  print(paste0("Selected and unioned the intersected ecoregions in ",(toc - tic) %>% round(4)," seconds"))
+  
+  
+  #------------------------------------------------------
+  # Save indices, shapefiles, and buffered points
+  #------------------------------------------------------
+  tic <- Sys.time()
+  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
+  saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
+  saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
+  toc <- Sys.time()
+  print(paste0("Saved the indices, shapefiles, and buffered points in ",(toc - tic) %>% round(4)," seconds"))
   
   
   #------------------------------------------------------
   # Save ecoregion maps, with and without points plotted
   #------------------------------------------------------
+  tic <- Sys.time()
   png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Dots.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_sf), col="red", add=T)
   dev.off()
   
-  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Bufffered.png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Buffered.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_buffered), col="red", add=T)
   dev.off()
@@ -165,16 +190,8 @@ for(i in species_inds) {
   plot(st_geometry(ecoregion_cut))
   dev.off()
   
-  
-  #------------------------------------------------------
-  # Save shapefile, indices, and buffered points
-  #------------------------------------------------------
-  saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
-  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
-  saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
-  
   toc <- Sys.time()
-  toc - tic
+  print(paste0("Saved ecoregion maps in ",(toc - tic) %>% round(4)," seconds"))
 
 }
 

@@ -1,9 +1,9 @@
 #!/bin/bash
-export IFS = ","
+export IFS=","
 
-cat 5c-species-list.csv | while read a; do
+cat 5d-species-list.csv | while read a; do
 
-job_file = "species${a}_ecoregions_intersect.job"
+job_file="species${a}_ecoregions_intersect.job"
 
 
 echo "#!/bin/bash
