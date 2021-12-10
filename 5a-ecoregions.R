@@ -53,8 +53,8 @@ Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_Speci
 #------------------------------------------------------
 # Tidy and validate the sf geometry of ecoregions
 #------------------------------------------------------
-ecoregions_sf <- ecoregions %>% st_is_valid()
-ecoregions_sf %<>% st_make_valid()
+ecoregions_check <- ecoregions %>% st_is_valid()
+ecoregions_sf <- ecoregions %>% st_make_valid()
 
 
 #------------------------------------------------------
