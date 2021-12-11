@@ -50,7 +50,8 @@ ecoregions <- read_sf(dsn = "./RESOLVE_Ecoregions/Ecoregions2017", layer = "Ecor
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
 toc <- Sys.time()
-print(paste0("Loaded in lists and ecoregions in ",(toc - tic) %>% round(4)," seconds"))
+print("Loaded in lists and ecoregions")
+print(toc - tic)
 
 
 #------------------------------------------------------
@@ -60,7 +61,8 @@ tic <- Sys.time()
 ecoregions_check <- ecoregions %>% st_is_valid()
 ecoregions_sf <- ecoregions %>% st_make_valid()
 toc <- Sys.time()
-print(paste0("Tidied and validated sf geometry of ecoregions in ",(toc - tic) %>% round(4)," seconds"))
+print("Tidied and validated sf geometry of ecoregions")
+print(toc - tic)
 
 
 #------------------------------------------------------
@@ -117,8 +119,8 @@ for(i in species_inds) {
   occGPS_buffered <- geosphere_buffer(occGPS_sf, dist = 200000)
   st_crs(occGPS_buffered) <- "+proj=longlat +datum=WGS84 +no_defs" 
   toc <- Sys.time()
-  print(paste0("Buffered the occurrence points in ",(toc - tic) %>% round(4)," seconds"))
-  
+  print(paste0("Buffered the occurrence points for ",SpeciesOfInterest_Names[i]))
+  print(toc - tic)
   
   
   
@@ -149,16 +151,18 @@ for(i in species_inds) {
   
   ecoregion_intersected_inds <- ecoregion_inds %>% Reduce("c", .) %>% unique
   toc <- Sys.time()
-  print(paste0("Intersected ecoregions with buffered points in ",(toc - tic) %>% round(4)," seconds"))
+  print(paste0("Intersected ecoregions with buffered points for ",SpeciesOfInterest_Names[i]))
+  print(toc - tic)
   
   
   #------------------------------------------------------
   # Select and union the intersected ecoregions
   #------------------------------------------------------
   tic <- Sys.time()
-  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_union
+  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_union()
   toc <- Sys.time()
-  print(paste0("Selected and unioned the intersected ecoregions in ",(toc - tic) %>% round(4)," seconds"))
+  print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[i]))
+  print(toc - tic)
   
   
   #------------------------------------------------------
@@ -169,7 +173,8 @@ for(i in species_inds) {
   saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
   saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
   toc <- Sys.time()
-  print(paste0("Saved the indices, shapefiles, and buffered points in ",(toc - tic) %>% round(4)," seconds"))
+  print(paste0("Saved the indices, shapefiles, and buffered points for ",SpeciesOfInterest_Names[i]))
+  print(toc - tic)
   
   
   #------------------------------------------------------
@@ -191,7 +196,8 @@ for(i in species_inds) {
   dev.off()
   
   toc <- Sys.time()
-  print(paste0("Saved ecoregion maps in ",(toc - tic) %>% round(4)," seconds"))
+  print(paste0("Saved ecoregion maps for ",SpeciesOfInterest_Names[i]))
+  print(toc - tic)
 
 }
 
