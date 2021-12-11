@@ -59,7 +59,7 @@ print(toc - tic)
 #------------------------------------------------------
 tic <- Sys.time()
 ecoregions_check <- ecoregions %>% st_is_valid()
-ecoregions_sf <- ecoregions %>% st_set_precision(0.001) %>% st_make_valid()
+ecoregions_sf <- ecoregions %>% st_set_precision(0.01) %>% st_make_valid()
 toc <- Sys.time()
 print("Tidied and validated sf geometry of ecoregions")
 print(toc - tic)
@@ -170,7 +170,7 @@ for(i in species_inds) {
   #------------------------------------------------------
   tic <- Sys.time()
   ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>%
-    st_set_precision(0.001) %>% st_make_valid() %>% st_union()
+    st_set_precision(0.01) %>% st_make_valid() %>% st_union()
   toc <- Sys.time()
   print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
@@ -192,6 +192,10 @@ for(i in species_inds) {
   # Save ecoregion maps, with and without points plotted
   #------------------------------------------------------
   tic <- Sys.time()
+  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],".png"), width=1000, height=1000)
+  plot(st_geometry(ecoregion_cut))
+  dev.off()
+  
   png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Dots.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_sf), col="red", add=T)
@@ -200,10 +204,6 @@ for(i in species_inds) {
   png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Buffered.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_buffered), col="red", add=T)
-  dev.off()
-  
-  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],".png"), width=1000, height=1000)
-  plot(st_geometry(ecoregion_cut))
   dev.off()
   
   toc <- Sys.time()
