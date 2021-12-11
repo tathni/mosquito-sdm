@@ -8,7 +8,7 @@
 testing = TRUE # For testing purposes, set testing = TRUE, which will allow things to run faster while debugging
 
 
-if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on sherlock remote computing cluster
+if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlock remote computing cluster
   library(dplyr)
   library(magrittr)
   library(geosphere)
@@ -59,7 +59,7 @@ print(toc - tic)
 #------------------------------------------------------
 tic <- Sys.time()
 ecoregions_check <- ecoregions %>% st_is_valid()
-ecoregions_sf <- ecoregions %>% st_make_valid()
+ecoregions_sf <- ecoregions %>% st_set_precision(0.001) %>% st_make_valid()
 toc <- Sys.time()
 print("Tidied and validated sf geometry of ecoregions")
 print(toc - tic)
@@ -69,7 +69,7 @@ print(toc - tic)
 # Define a function to buffer points with 200 km radius
 #------------------------------------------------------
 geosphere_buffer <- function(sf_points, 
-                             buffer_deg = 0:360, # Degrees around the circle to get points at
+                             buffer_deg = 0:360, # Degrees around the circle from which to acquire points
                              dist # Distance in meters
 ){
   buff_ll <- destPoint(st_coordinates(sf_points), 
@@ -125,7 +125,7 @@ for(i in species_inds) {
   
   
   #------------------------------------------------------
-  # Create a dataframe with start and end indices to loop through the rows
+  # Create a dataframe with start and end indices to loop through rows of buffered points
   # Splits up intersecting into smaller component tasks to save computation time
   #------------------------------------------------------
   ecoregion_inds <- list()
@@ -138,7 +138,7 @@ for(i in species_inds) {
 
   
   #------------------------------------------------------
-  # Piece-wise intersecting all ecoregions with buffered points
+  # Piece-wise intersecting all ecoregions with buffered points and acquire indices
   #------------------------------------------------------
   tic <- Sys.time()
   for(k in 1:nrow(indices)) {
@@ -151,7 +151,17 @@ for(i in species_inds) {
   
   ecoregion_intersected_inds <- ecoregion_inds %>% Reduce("c", .) %>% unique
   toc <- Sys.time()
-  print(paste0("Intersected ecoregions with buffered points for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Intersected ecoregions with buffered points and acquired indices for ",SpeciesOfInterest_Names[i]))
+  print(toc - tic)
+  
+  
+  #------------------------------------------------------
+  # Save indices
+  #------------------------------------------------------
+  tic <- Sys.time()
+  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
+  toc <- Sys.time()
+  print(paste0("Saved indices for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
   
   
@@ -159,21 +169,22 @@ for(i in species_inds) {
   # Select and union the intersected ecoregions
   #------------------------------------------------------
   tic <- Sys.time()
-  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_union()
+  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>%
+    st_set_precision(0.001) %>% st_make_valid() %>% st_union()
   toc <- Sys.time()
   print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
   
   
   #------------------------------------------------------
-  # Save indices, shapefiles, and buffered points
+  # Save ecoregion shapefiles and buffered points
   #------------------------------------------------------
   tic <- Sys.time()
   saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
   saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
   saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
   toc <- Sys.time()
-  print(paste0("Saved the indices, shapefiles, and buffered points for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Saved ecoregion shapefiles and buffered points for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
   
   
