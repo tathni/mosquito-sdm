@@ -21,7 +21,7 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
 } else {
   source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
   setwd("E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/")
-  species_inds <- 1:7 
+  species_inds <- 1:8 
 }
 
 
@@ -33,6 +33,7 @@ speciesList <- c("AedesAegypti",
                  "AedesAlbopictus",
                  "AnophelesGambiae",
                  "AnophelesStephensi",
+                 "CulexAnnulirostris",
                  "CulexPipiens",
                  "CulexQuinquefasciatus",
                  "CulexTarsalis")
@@ -41,6 +42,7 @@ SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Aedes albopictus",
                              "Anopheles gambiae",
                              "Anopheles stephensi",
+                             "Culex annulirostris",
                              "Culex pipiens",
                              "Culex quinquefasciatus",
                              "Culex tarsalis")
@@ -59,7 +61,7 @@ print(toc - tic)
 #------------------------------------------------------
 tic <- Sys.time()
 ecoregions_check <- ecoregions %>% st_is_valid()
-ecoregions_sf <- ecoregions %>% st_set_precision(0.01) %>% st_make_valid()
+ecoregions_sf <- ecoregions %>% st_make_valid()
 toc <- Sys.time()
 print("Tidied and validated sf geometry of ecoregions")
 print(toc - tic)
@@ -169,8 +171,7 @@ for(i in species_inds) {
   # Select and union the intersected ecoregions
   #------------------------------------------------------
   tic <- Sys.time()
-  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>%
-    st_set_precision(0.01) %>% st_make_valid() %>% st_union()
+  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_make_valid() %>% st_union()
   toc <- Sys.time()
   print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)

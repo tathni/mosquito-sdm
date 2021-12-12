@@ -11,7 +11,7 @@ echo "#!/bin/bash
 #SBATCH  -p normal
 #SBATCH --job-name=spec${a}_ecoregions
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --time=48:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --output species${a}_ecoregions_intersect.log

@@ -11,7 +11,7 @@ echo "#!/bin/bash
 #SBATCH  -p dev
 #SBATCH --job-name=spec${a}_ecoregions_test
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --time=2:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --output species${a}_ecoregions_intersect_test.log
