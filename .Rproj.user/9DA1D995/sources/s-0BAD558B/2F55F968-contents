@@ -1,0 +1,39 @@
+### REPOSITORY OF OLD, UNUSED BACKGROUND SAMPLING METHODS ###
+# Background sampling at random, unbiased and unweighted, from sampling range
+set.seed(seedNum)
+sampleNum <- 100000
+cells_train_bg <- randomPoints(sampling_ranges[[i]], sampleNum, p = cells_train, excludep = T, prob = F)
+cells_eval_bg <- randomPoints(sampling_ranges[[i]], sampleNum, p = cells_eval, excludep = T, prob = F)
+cells_train_bg_predictors <- cbind(data.frame(raster::extract(predictors, cells_train_bg)),
+                                   cells_train_bg) %>%
+  .[complete.cases(.), ] %>%
+  .[sample(nrow(.), select_trainBg),]  # Workflow for selecting non-NAs
+train_bg <- cbind(c(rep(0, nrow(cells_train_bg_predictors))),
+                  cells_train_bg_predictors,
+                  c(rep("Training", nrow(cells_train_bg_predictors))))
+
+# Dismo package's randomPoints() function
+cells_train_bg <- randomPoints(mosq_bias, n = sampleNum, p = cells_train, excludep = T, prob = T)
+cells_eval_bg <- randomPoints(mosq_bias, n = sampleNum, p = cells_eval, excludep = T, prob = T)
+
+# Michael Scroggie's method of spatial sampling
+# Normalize the probability raster by dividing by the sum of all inclusion weights
+mosq_bias_weighted <- mosq_bias/sum(getValues(mosq_bias), na.rm=T)
+mosq_bias_list[[i]] <- mosq_bias_weighted
+# Confirm that the sum of probabilities is indeed 1
+print(paste0("The sum of the inclusion weights is: ",sum(getValues(mosq_bias_weighted), na.rm=T)))
+pointsRandom <- function(probRaster, N){
+  x <- getValues(probRaster)
+  x[is.na(x)] <- 0
+  samp <- sample(nrow(probRaster)*ncol(probRaster), size=N, prob=x)
+  sampRaster <- raster(probRaster)
+  sampRaster[samp]<-1 # Set value of sampled squares to 1
+  points <- rasterToPoints(sampRaster, fun=function(x){x>0}) # Convert to SpatialPoints
+  points <- SpatialPoints(points)
+  return(points)
+}
+set.seed(seedNum)
+bg_points <- pointsRandom(mosq_bias_weighted, sampleNum)
+sampleRows <- sample(train_ratio * nrow(bg_points))
+cells_train_bg <- bg_points[sampleRows]
+cells_eval_bg <- bg_points[-sampleRows]

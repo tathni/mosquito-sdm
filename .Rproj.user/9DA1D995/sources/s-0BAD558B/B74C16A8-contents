@@ -32,6 +32,7 @@ library(maxnet)
 library(rgdal)
 library(sf)
 library(sp)
+library(rgeos)
 library(spThin)
 library(spdep)
 library(geosphere)
@@ -60,7 +61,7 @@ seedNum <- 250
 
 
 #------------------------------------------------------
-# Create dataframes for species of interest, activity season, and commonly referenced items
+# Create dataframes for species of interest and activity seasons
 #------------------------------------------------------
 SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Aedes albopictus",

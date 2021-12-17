@@ -13,6 +13,10 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
   library(magrittr)
   library(geosphere)
   library(sf)
+  library(sp)
+  library(rgeos)
+  library(maptools)
+  data(wrld_simpl)
 
   # Use the command line arguments supplied to set which species we'll be running 
   args <- commandArgs(TRUE) 
@@ -48,11 +52,56 @@ SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Culex tarsalis")
 
 ecoregions <- read_sf(dsn = "./RESOLVE_Ecoregions/Ecoregions2017", layer = "Ecoregions2017")
+my_crs <- "+proj=longlat +datum=WGS84 +no_defs"
 
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
+
 toc <- Sys.time()
 print("Loaded in lists and ecoregions")
+print(toc - tic)
+
+
+#------------------------------------------------------
+# Create continent-specific shapefiles from wrld_simpl
+#------------------------------------------------------
+SouthAmerica_list <- c("Colombia", "Venezuela", "Suriname", "Guyana", "French Guiana",
+                       "Ecuador", "Peru", "Bolivia", "Chile", "Argentina", "Uruguay",
+                       "Paraguay", "Brazil", "Falkland Islands (Malvinas)")
+SouthAmerica <- wrld_simpl[wrld_simpl$NAME %in% SouthAmerica_list, ]
+NorthAmerica <- wrld_simpl[wrld_simpl$REGION==19,]
+NorthAmerica <- NorthAmerica[!NorthAmerica$NAME %in% c(SouthAmerica_list,"Greenland"), ]
+Greenland <- wrld_simpl[wrld_simpl$NAME=="Greenland",]
+Africa <- wrld_simpl[wrld_simpl$REGION==2,]
+Oceania <- wrld_simpl[wrld_simpl$REGION==9,]
+Europe <- wrld_simpl[wrld_simpl$REGION==150,]
+Asia <- wrld_simpl[wrld_simpl$REGION==142,]
+Antarctica <- wrld_simpl[wrld_simpl$REGION==0,]
+
+
+#------------------------------------------------------
+# Split up the 'Rock and Ice' ecoregion by continent, and append these back into ecoregions
+#------------------------------------------------------
+tic <- Sys.time()
+sf::sf_use_s2(FALSE)
+Antarctica_rockice <- st_intersection(ecoregions %>% filter(ECO_NAME == "Rock and Ice"),
+                                      st_as_sf(Antarctica) %>% st_set_crs(my_crs)) %>%
+  dplyr::select(c(1:15,27))
+NorthAmerica_rockice <- st_intersection(ecoregions %>% filter(ECO_NAME == "Rock and Ice"),
+                                        st_as_sf(NorthAmerica) %>% st_set_crs(my_crs)) %>%
+  dplyr::select(c(1:15,27))
+Greenland_rockice <- st_intersection(ecoregions %>% filter(ECO_NAME == "Rock and Ice"),
+                                     st_as_sf(Greenland) %>% st_set_crs(my_crs)) %>%
+  dplyr::select(c(1:15,27))
+Asia_rockice <- st_intersection(ecoregions %>% filter(ECO_NAME == "Rock and Ice"),
+                                st_as_sf(Asia) %>% st_set_crs(my_crs)) %>%
+  dplyr::select(c(1:15,27))
+
+ecoregions %<>% filter(!ECO_NAME == "Rock and Ice")
+ecoregions %<>% rbind(Antarctica_rockice, NorthAmerica_rockice, Asia_rockice)
+
+toc <- Sys.time()
+print("Split up the 'Rock and Ice' ecoregion by continent")
 print(toc - tic)
 
 
@@ -62,6 +111,7 @@ print(toc - tic)
 tic <- Sys.time()
 ecoregions_check <- ecoregions %>% st_is_valid()
 ecoregions_sf <- ecoregions %>% st_make_valid()
+
 toc <- Sys.time()
 print("Tidied and validated sf geometry of ecoregions")
 print(toc - tic)
@@ -78,10 +128,20 @@ geosphere_buffer <- function(sf_points,
                        b = rep(buffer_deg, each = nrow(sf_points)), 
                        d = dist) %>% 
     as.data.frame() %>%
-    st_as_sf(coords=c("lon","lat")) %>% 
+    st_as_sf(coords=c("lon","lat"), remove = FALSE) %>% 
     dplyr::mutate(order = 1:n(), 
                   id = order %% nrow(sf_points))
   
+  # Split the buffered shapefiles if they cross longitude +/- 180 (i.e., edges of the map)
+  buff_ll %<>% 
+    group_by(id) %>% 
+    mutate(world_edge_x = sign(lon) != sign(lag(lon))) %>% 
+    replace_na(list(world_edge_x = FALSE)) %>% 
+    mutate(id = id + 0.1*(cumsum(world_edge_x) %% 2)) %>% 
+    dplyr::select(-lat, -lon, -world_edge_x) %>% 
+    ungroup
+  
+  # Create a polygon of buffer
   buff_polys = st_sf(
     aggregate(
       buff_ll$geometry,
@@ -120,6 +180,7 @@ for(i in species_inds) {
   tic <- Sys.time()
   occGPS_buffered <- geosphere_buffer(occGPS_sf, dist = 200000)
   st_crs(occGPS_buffered) <- "+proj=longlat +datum=WGS84 +no_defs" 
+  
   toc <- Sys.time()
   print(paste0("Buffered the occurrence points for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
@@ -152,6 +213,7 @@ for(i in species_inds) {
   }
   
   ecoregion_intersected_inds <- ecoregion_inds %>% Reduce("c", .) %>% unique
+  
   toc <- Sys.time()
   print(paste0("Intersected ecoregions with buffered points and acquired indices for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
@@ -162,6 +224,7 @@ for(i in species_inds) {
   #------------------------------------------------------
   tic <- Sys.time()
   saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
+  
   toc <- Sys.time()
   print(paste0("Saved indices for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
@@ -171,7 +234,9 @@ for(i in species_inds) {
   # Select and union the intersected ecoregions
   #------------------------------------------------------
   tic <- Sys.time()
-  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_make_valid() %>% st_union()
+  ecoregion_cut <- ecoregions_sf[ecoregion_intersected_inds, ] %>% st_make_valid() %>% 
+    as_Spatial %>% gBuffer(byid = FALSE, width = 0) %>% st_as_sf
+  
   toc <- Sys.time()
   print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
@@ -184,6 +249,7 @@ for(i in species_inds) {
   saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
   saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
   saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
+  
   toc <- Sys.time()
   print(paste0("Saved ecoregion shapefiles and buffered points for ",SpeciesOfInterest_Names[i]))
   print(toc - tic)
@@ -212,15 +278,6 @@ for(i in species_inds) {
   print(toc - tic)
 
 }
-
-
-
-#------------------------------------------------------
-# Load in Gambiae ecoregion data for diagnostic check
-#------------------------------------------------------
-# gambiae_shapefile <- readRDS("Ecoregion Outputs/Shapefile_AnophelesGambiae.RDS")
-# gambiae_points <- readRDS("Ecoregion Outputs/BufferedPoints_AnophelesGambiae.RDS")
-# ggplot(gambiae_shapefile) + geom_sf()
 
 
 
