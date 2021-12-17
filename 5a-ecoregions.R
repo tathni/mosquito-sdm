@@ -11,6 +11,7 @@ testing = FALSE # For testing purposes, set testing = TRUE, which will allow thi
 if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlock remote computing cluster
   library(dplyr)
   library(magrittr)
+  library(tidyr)
   library(geosphere)
   library(sf)
   library(sp)
@@ -139,9 +140,9 @@ geosphere_buffer <- function(sf_points,
     replace_na(list(world_edge_x = FALSE)) %>% 
     mutate(id = id + 0.1*(cumsum(world_edge_x) %% 2)) %>% 
     dplyr::select(-lat, -lon, -world_edge_x) %>% 
-    ungroup
+    ungroup()
   
-  # Create a polygon of buffer
+  # Create polygon buffer
   buff_polys = st_sf(
     aggregate(
       buff_ll$geometry,
@@ -152,6 +153,7 @@ geosphere_buffer <- function(sf_points,
     ))
   return(buff_polys)
 }
+
 
 
 #------------------------------------------------------
