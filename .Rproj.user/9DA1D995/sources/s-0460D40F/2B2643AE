@@ -1,0 +1,25 @@
+{
+    "id": "2B2643AE",
+    "path": "~/GitHub/mosquito-sdm/6-breadth-checks.R",
+    "project_path": "6-breadth-checks.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1640281365958.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "cursorPosition": "17,41",
+        "scrollLine": "0",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1640282216,
+    "encoding": "ISO8859-1",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1640282216124,
+    "read_only": false,
+    "read_only_alternatives": []
+}
