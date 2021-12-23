@@ -27,6 +27,8 @@ Background_ALA_Raw <- read.csv("Culicidae_ALA_Raw.csv", sep = ",", header = T, e
 Background_Sinka_Raw <- read.csv("AnophelesStephensi_Background_Sinka2020.csv", sep = ",", header = T, stringsAsFactors = F)
 Background_Wiebe_Raw <- read_excel("AnophelesGambiae_Wiebe2017.xlsx", sheet=8)
 
+print("Loaded in background points")
+
 
 #------------------------------------------------------
 # Filter GBIF background from 2000-2019, by <= 1000m uncertainty, and by >= 2 decimal points
@@ -56,6 +58,8 @@ Background_GBIF <- Background_GBIF[!Background_GBIF$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
 
 Background_GBIF %<>% mutate(source = "GBIF")
+
+print("Cleaned GBIF background")
 
 
 #------------------------------------------------------
@@ -89,6 +93,8 @@ Background_ALA <- Background_ALA[!Background_ALA$rowNum %in% indexRows, ] %>%
 
 Background_ALA %<>% mutate(source = "Atlas of Living Australia")
 
+print("Cleaned Atlas of Living Australia (Culex annulirostris) background")
+
 
 #------------------------------------------------------
 # Clean Sinka background for Anopheles stephensi
@@ -119,6 +125,8 @@ Background_Sinka <- Background_Sinka[!Background_Sinka$rowNum %in% indexRows, ] 
 
 Background_Sinka %<>% mutate(source = "Sinka et al., 2020")
 
+print("Cleaned Sinka (Anopheles stephensi) background")
+
 
 #------------------------------------------------------
 # Clean Wiebe background for Anopheles gambiae
@@ -147,6 +155,8 @@ Background_Wiebe <- Background_Wiebe[!Background_Wiebe$rowNum %in% indexRows, ] 
   dplyr::select(-rowNum)
 
 Background_Wiebe %<>% mutate(source = "Wiebe et al., 2017")
+
+print("Cleaned Wiebe (Anopheles gambiae) background")
 
 
 #------------------------------------------------------
@@ -199,7 +209,10 @@ for(i in 1:length(bg_species_list)) {
   
   save_name <- paste0("bg_cells_",bg_species_list[i])
   assign(paste0(save_name), bg_cells)
+  
+  print(paste0("Compiled weighted bias mask for ",bg_species_list[i]))
 }
+
 
 
 #------------------------------------------------------
@@ -209,6 +222,8 @@ saveRDS(bg_cells_Main, file = "Background_Mask_Main.RDS")
 saveRDS(bg_cells_An_gambiae, file = "Background_Mask_An_Gambiae.RDS")
 saveRDS(bg_cells_An_stephensi, file = "Background_Mask_An_Stephensi.RDS")
 saveRDS(bg_cells_Cx_annuli, file = "Background_Mask_Cx_Annuli.RDS")
+
+print("Saved all weighted bias masks")
 
 
 

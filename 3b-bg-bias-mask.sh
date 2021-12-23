@@ -8,6 +8,7 @@ echo "#!/bin/bash
 #SBATCH --job-name=bg_bias_mask
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
+#SBATCH --mem=64G
 #SBATCH --time=48:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --output bg_bias_mask.log
