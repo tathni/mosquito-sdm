@@ -4,12 +4,12 @@ job_file="bg_bias_mask.job"
 
 echo "#!/bin/bash
 
-#SBATCH  -p normal
+#SBATCH  -p bigmem
 #SBATCH --job-name=bg_bias_mask
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
-#SBATCH --mem=64G
-#SBATCH --time=48:00:00
+#SBATCH --ntasks-per-node=20
+#SBATCH --mem=260G
+#SBATCH --time=24:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --output bg_bias_mask.log
 

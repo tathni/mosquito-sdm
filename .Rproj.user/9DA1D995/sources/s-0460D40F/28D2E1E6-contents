@@ -3,13 +3,23 @@
 # Project: Mosquito SDM Thermal Dependence
 
 # Description: Clean the Class Insecta and supplemental Culicidae background points
-# Create weighted bias mask that will be used to correct for sampling effort
+# Compile weighted bias mask that will be used to correct for sampling effort
 #######################################################
 
 if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlock remote computing cluster
+  library(readxl)
   library(dplyr)
   library(magrittr)
   library(raster)
+  library(data.table)
+  
+  decimalNums <- function(x) {
+    if ((x %% 1) != 0) {
+      nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+    } else {
+      return(0)
+    }
+  }
 } else {
   source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
 }
@@ -21,7 +31,7 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
 #------------------------------------------------------
 # Read in data for Class Insecta (GBIF) and supplemental Culicidae (ALA, Sinka, Wiebe)  points
 #------------------------------------------------------
-Background_GBIF_Raw <- read.csv("0083519-210914110416597.csv",
+Background_GBIF_Raw <- fread("0083519-210914110416597.csv",
                                 sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
 Background_ALA_Raw <- read.csv("Culicidae_ALA_Raw.csv", sep = ",", header = T, encoding = "UTF-8", stringsAsFactors = F)
 Background_Sinka_Raw <- read.csv("AnophelesStephensi_Background_Sinka2020.csv", sep = ",", header = T, stringsAsFactors = F)
@@ -36,14 +46,16 @@ print("Loaded in background points")
 Background_GBIF <- Background_GBIF_Raw %>%
   filter(!species == "",
          !is.na(decimalLongitude),
+         !as.numeric(as.character(decimalLongitude)) %in% c(NA, NaN, Inf, -Inf),
          !is.na(decimalLatitude),
+         !as.numeric(as.character(decimalLongitude)) %in% c(NA, NaN, Inf, -Inf),
          basisOfRecord != "FOSSIL_SPECIMEN",
          basisOfRecord != "UNKNOWN",
          year >= 2000 & year <= 2019,
          is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
   dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, Background_GBIF, decimalLatitude, countryCode, year, month, rowNum)
-names(Background_GBIF)[names(Background_Culicidae) == "countryCode"] <- "country"
+  dplyr::select(species, decimalLongitude, decimalLatitude, countryCode, year, month, rowNum)
+names(Background_GBIF)[names(Background_GBIF) == "countryCode"] <- "country"
 
 indexRows <- list()
 counter <- 1
