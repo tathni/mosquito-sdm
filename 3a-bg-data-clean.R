@@ -48,7 +48,7 @@ Background_GBIF <- Background_GBIF_Raw %>%
          !is.na(decimalLongitude),
          !as.numeric(as.character(decimalLongitude)) %in% c(NA, NaN, Inf, -Inf),
          !is.na(decimalLatitude),
-         !as.numeric(as.character(decimalLongitude)) %in% c(NA, NaN, Inf, -Inf),
+         !as.numeric(as.character(decimalLatitude)) %in% c(NA, NaN, Inf, -Inf),
          basisOfRecord != "FOSSIL_SPECIMEN",
          basisOfRecord != "UNKNOWN",
          year >= 2000 & year <= 2019,
