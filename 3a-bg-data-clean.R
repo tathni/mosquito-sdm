@@ -11,15 +11,20 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
   library(dplyr)
   library(magrittr)
   library(raster)
+  library(sp)
+  library(rgdal)
   library(data.table)
   
   decimalNums <- function(x) {
     if ((x %% 1) != 0) {
-      nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+      nchar(strsplit(sub('0+$', '', as.character(format(x, scientific=FALSE, digits=20))), ".", fixed=TRUE)[[1]][[2]])
     } else {
       return(0)
     }
   }
+  
+  options(scipen = 100000)
+  
 } else {
   source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
 }
@@ -60,18 +65,30 @@ names(Background_GBIF)[names(Background_GBIF) == "countryCode"] <- "country"
 indexRows <- list()
 counter <- 1
 for(i in 1:nrow(Background_GBIF)) {
-  if(decimalNums(Background_GBIF$decimalLongitude[[i]]) < 2 &
-     decimalNums(Background_GBIF$decimalLatitude[[i]]) < 2) {
-    indexRows[[counter]] <- i
-    counter <- counter+1
+  lon_decimals <- try(decimalNums(Background_GBIF$decimalLongitude[[i]]))
+  lat_decimals <- try(decimalNums(Background_GBIF$decimalLatitude[[i]]))
+  
+  if(is.numeric(lon_decimals) & is.numeric(lat_decimals)){
+    if(lon_decimals < 2 & lat_decimals < 2) {
+      indexRows[[counter]] <- i
+      counter <- counter+1
+    } 
+  } else {
+    print(paste0("decimalNums failed for row ", i))
+    print(lon_decimals[1])
+    print(lat_decimals[1])
+    print(str(Background_GBIF[i,]))
+    print(Background_GBIF[i,])
+    stop()
   }
 }
+
 Background_GBIF <- Background_GBIF[!Background_GBIF$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
 
 Background_GBIF %<>% mutate(source = "GBIF")
 
-print("Cleaned GBIF background")
+print("Cleaned GBIF (Class Insecta) background")
 
 
 #------------------------------------------------------
@@ -86,7 +103,7 @@ Background_ALA <- Background_ALA_Raw %>%
          year >= 2000 & year <= 2019,
          is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
   dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, genus, specificEpithet, decimalLongitude, decimalLatitude, year, month, rowNum)
+  dplyr::select(species, genus, specificEpithet, decimalLongitude, decimalLatitude, country, year, month, rowNum)
 Background_ALA$species <- ifelse(!Background_ALA$species == "", Background_ALA$species,
                                  paste(Background_ALA$genus, Background_ALA$specificEpithet))
 
@@ -99,9 +116,10 @@ for(i in 1:nrow(Background_ALA)) {
     counter <- counter+1
   }
 }
+
 Background_ALA <- Background_ALA[!Background_ALA$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum) %>%
-  dplyr::select(c(1,4:5,8,6:7))
+  dplyr::select(c(1,4:8))
 
 Background_ALA %<>% mutate(source = "Atlas of Living Australia")
 
@@ -132,6 +150,7 @@ for(i in 1:nrow(Background_Sinka)) {
     counter <- counter+1
   }
 }
+
 Background_Sinka <- Background_Sinka[!Background_Sinka$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
 
@@ -163,6 +182,7 @@ for(i in 1:nrow(Background_Wiebe)) {
     counter <- counter+1
   }
 }
+
 Background_Wiebe <- Background_Wiebe[!Background_Wiebe$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
 
@@ -172,9 +192,10 @@ print("Cleaned Wiebe (Anopheles gambiae) background")
 
 
 #------------------------------------------------------
-# Combine the ALA, Sinka, and Wiebe datasets with GBIF
+# Combine the ALA, Sinka, and Wiebe datasets with GBIF and save
 #------------------------------------------------------
-Background_Insecta <- rbind(Background_GBIF, Background_ALA, Background_Sinka, Mosquitoes_Wiebe)
+Background_Insecta <- rbind(Background_GBIF, Background_ALA, Background_Sinka, Background_Wiebe)
+write.csv(Background_Insecta, file = "Background_Insecta.csv", row.names = F)
 
 
 

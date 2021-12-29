@@ -2,7 +2,7 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Merge all of the individual Google Earth Engine-derived environmental covariates
+# Description: Merge all individual Google Earth Engine environmental covariates
 #######################################################
 
 source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
@@ -15,22 +15,22 @@ tic <- Sys.time()
 # Place sub-folders of individual, unmerged continental rasters in the temporary folder
 # If the merged rasters aren't needed in the environment, this can be switch to an a_ply
 inputPredictors <- alply(list.dirs("Environmental Raster Temporary", full.names = TRUE, recursive = FALSE), 1,
-                        function(rast_folder){ 
-                          print(rast_folder)
-                          
-                          # For every file in that folder, read in the file list-wise, then rasterize and reproject
-                          rasters <- alply(list.files(rast_folder,  full.names = TRUE), 1, function(rast_file){
-                            print(rast_file)
-                            raster::raster(rast_file)
-                          })
-                          
-                          # Name the rasters to allow do.call to be run over them
-                          names(rasters) <- c("x", "y")
-                          
-                          # Output should be a list with one merged raster for every directory of the raw environmental rasters
-                          output <- do.call(raster::merge, rasters)
-                          return(output)
-                        })
+                         function(rast_folder){ 
+                           print(rast_folder)
+                           
+                           # For every file in that folder, read in the raster
+                           rasters <- alply(list.files(rast_folder,  full.names = TRUE), 1, function(rast_file){
+                             print(rast_file)
+                             raster::raster(rast_file)
+                           })
+                           
+                           # Name the rasters to allow do.call to be run over them
+                           names(rasters) <- c("x", "y")
+                           
+                           # Output should be a list with one merged raster for every directory of the raw environmental rasters
+                           output <- do.call(raster::merge, rasters)
+                           return(output)
+                         })
 toc <- Sys.time()
 toc - tic
 
@@ -40,7 +40,8 @@ toc - tic
 # Name the environmental covariates in the list
 #------------------------------------------------------
 rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
- 
+inputPredictors %<>% setNames(rasterNames) 
+
 
 
 #------------------------------------------------------
@@ -59,6 +60,6 @@ inputPredictors[[13]] <- raster::mask(inputPredictors[[13]], wrld_simpl) # TASD
 # Save each individual merged covariate raster as a .tif file
 #------------------------------------------------------
 for (i in 1:length(inputPredictors)) {
-  writeRaster(inputPredictors[[i]], filename = rasterNames[i], format = "GTiff")
+  writeRaster(inputPredictors[[i]], filename = paste0("Environmental Predictors Merged/",rasterNames[i]), format = "GTiff")
 }
 

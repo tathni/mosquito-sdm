@@ -2,7 +2,7 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Create ecoregion-based sampling range maps
+# Description: Create ecoregion maps based on buffered species occurrences
 #######################################################
 
 testing = FALSE # For testing purposes, set testing = TRUE, which will allow things to run faster while debugging

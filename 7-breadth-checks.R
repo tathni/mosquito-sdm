@@ -12,20 +12,24 @@ source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
 ## DATA LOAD-IN ##
 #------------------------------------------------------
 #------------------------------------------------------
-# Load in mosquito occurrences
+# Load in occurrence data
 #------------------------------------------------------
-print(paste0("Loading in mosquito occurrence data"))
 Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
                                          encoding = "UTF-8", stringsAsFactors = FALSE)
-Background_Culicidae <- read.csv("GBIF_Datasets_Cleaned/Background_Culicidae.csv", header = TRUE,
-                                 encoding = "UTF-8", stringsAsFactors = FALSE)
-Background_Culicidae_Australia_Supplement <- read.csv("GBIF_Datasets_Cleaned/Background_Culicidae_Australia_Supplement.csv",
-                                                      header = TRUE, encoding = "UTF-8", stringsAsFactors = FALSE)
+
+
+#------------------------------------------------------
+# Load in background bias masks
+#------------------------------------------------------
+bias_mask_main <- readRDS("Background Bias Masks/Background_Mask_Main.RDS")
+bias_mask_an_gambiae <- readRDS("Background Bias Masks/Background_Mask_An_Gambiae.RDS")
+bias_mask_an_stephensi <- readRDS("Background Bias Masks/Background_Mask_An_Stephensi.RDS")
+bias_mask_cx_annuli <- readRDS("Background Bias Masks/Background_Mask_Cx_Annuli.RDS")
+
 
 #------------------------------------------------------
 # Load in environmental predictors
 #------------------------------------------------------
-print(paste0("Loading in raster data"))
 predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                         pattern = ".tif",
                                         full.names = TRUE), 1, function(file){
@@ -43,9 +47,9 @@ predictors_preStack <- setNames(predictors_preStack, rasterNames)
 predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
 predictors_photoSeason <- predictors_preStack[c(1:8,11)] %>% stack()
 predictors_precipSeason <- predictors_preStack[c(1:6,9:11)] %>% stack()
-predictor_sum_yearRound <- raster("Predictor_Sum_YearRound.tif")
-predictor_sum_photoSeason <- raster("Predictor_Sum_PhotoSeason.tif")
-predictor_sum_precipSeason <- raster("Predictor_Sum_PrecipSeason.tif")
+predictor_sum_yearRound <- raster("Environmental Predictors Summed/Predictor_Sum_YearRound.tif")
+predictor_sum_photoSeason <- raster("Environmental Predictors Summed/Predictor_Sum_PhotoSeason.tif")
+predictor_sum_precipSeason <- raster("Environmental Predictors Summed/Predictor_Sum_PrecipSeason.tif")
 
 
 #------------------------------------------------------

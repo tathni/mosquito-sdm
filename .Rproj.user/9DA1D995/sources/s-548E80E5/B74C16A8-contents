@@ -95,10 +95,12 @@ setwd(project_dir)
 #------------------------------------------------------
 decimalNums <- function(x) {
   if ((x %% 1) != 0) {
-    nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+    nchar(strsplit(sub('0+$', '', as.character(format(x, scientific=FALSE, digits=20))), ".", fixed=TRUE)[[1]][[2]])
   } else {
     return(0)
   }
 }
+
+options(scipen = 100000)
 
 

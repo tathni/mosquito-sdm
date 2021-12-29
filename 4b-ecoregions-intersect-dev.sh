@@ -1,7 +1,7 @@
 #!/bin/bash
 export IFS=","
 
-cat 5d-species-list.csv | while read a; do
+cat 4d-species-list.csv | while read a; do
 
 job_file="species${a}_ecoregions_intersect_test.job"
 
@@ -20,7 +20,7 @@ echo "#!/bin/bash
 ml physics gdal udunits proj geos
 ml R/4.0.2
 
-Rscript ./5a-ecoregions.R "$a" " > $job_file
+Rscript ./4a-ecoregions.R "$a" " > $job_file
 
     sbatch $job_file
 

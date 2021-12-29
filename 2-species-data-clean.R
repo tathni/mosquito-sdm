@@ -80,6 +80,7 @@ for(i in 1:nrow(Mosquitoes_SpeciesOfInterest)) {
     counter <- counter+1
   }
 }
+
 Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest[!Mosquitoes_SpeciesOfInterest$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
 soi_coord_decplace <- Mosquitoes_SpeciesOfInterest
@@ -113,7 +114,7 @@ annuli_ala_coord_reported <- Mosquitoes_ALA
 
 Mosquitoes_ALA %<>%
   dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, year, month, rowNum)
+  dplyr::select(species, decimalLongitude, decimalLatitude, country, year, month, rowNum)
 
 indexRows <- list()
 counter <- 1
@@ -124,9 +125,10 @@ for(i in 1:nrow(Mosquitoes_ALA)) {
     counter <- counter+1
   }
 }
+
 Mosquitoes_ALA <- Mosquitoes_ALA[!Mosquitoes_ALA$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum) %>%
-  dplyr::select(c(1:3,6,4:5))
+  dplyr::select(c(1:6))
 annuli_ala_coord_decplace <- Mosquitoes_ALA
 
 Mosquitoes_ALA %<>% mutate(source = "Atlas of Living Australia")
@@ -185,6 +187,7 @@ for(i in 1:nrow(Mosquitoes_Sinka)) {
     counter <- counter+1
   }
 }
+
 Mosquitoes_Sinka <- Mosquitoes_Sinka[!Mosquitoes_Sinka$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum) %>%
   dplyr::select(c(5,1:2,4,3,6))
@@ -220,6 +223,7 @@ for(i in 1:nrow(Mosquitoes_Wiebe)) {
     counter <- counter+1
   }
 }
+
 Mosquitoes_Wiebe <- Mosquitoes_Wiebe[!Mosquitoes_Wiebe$rowNum %in% indexRows, ] %>%
   dplyr::select(-rowNum)
 wiebe_coord_decplace <- Mosquitoes_Wiebe
