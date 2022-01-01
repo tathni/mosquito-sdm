@@ -3,7 +3,7 @@
     "path": "~/GitHub/mosquito-sdm/6-raster-sum.R",
     "project_path": "6-raster-sum.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1476592152",
     "contents": "",
     "dirty": false,
     "created": 1640806195748.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "73,68",
-        "scrollLine": "48"
+        "cursorPosition": "51,71",
+        "scrollLine": "28"
     },
     "folds": "",
-    "lastKnownWriteTime": 1640808714,
+    "lastKnownWriteTime": 1641062810,
     "encoding": "ISO8859-1",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1640808714596,
+    "last_content_update": 1641062810930,
     "read_only": false,
     "read_only_alternatives": []
 }

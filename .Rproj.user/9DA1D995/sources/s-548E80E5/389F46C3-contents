@@ -49,8 +49,7 @@ writeRaster(predictor_sum_precipSeason, filename = "Environmental Predictors Sum
 #------------------------------------------------------
 # Check which layers have most NAs by assigning each layer's NA an increasing stairstep value, 0 otherwise
 #------------------------------------------------------
-incrementer <- c(c(1,10,100,1000,10000,100000,1000000,10000000,100000000),
-                 c(NA,NA,NA,NA))
+incrementer <- c(1,10,100,1000,10000,100000,1000000,10000000,100000000)
 predictors_yearRound_check <- predictors_yearRound
 predictors_photoSeason_check <- predictors_photoSeason
 predictors_precipSeason_check <- predictors_precipSeason
