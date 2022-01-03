@@ -21,10 +21,29 @@ Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_Speci
 #------------------------------------------------------
 # Load in background bias masks
 #------------------------------------------------------
-bias_mask_main <- readRDS("Background Bias Masks/Background_Mask_Main.RDS")
-bias_mask_an_gambiae <- readRDS("Background Bias Masks/Background_Mask_An_Gambiae.RDS")
-bias_mask_an_stephensi <- readRDS("Background Bias Masks/Background_Mask_An_Stephensi.RDS")
-bias_mask_cx_annuli <- readRDS("Background Bias Masks/Background_Mask_Cx_Annuli.RDS")
+bias_masks <- alply(list.files("Background Bias Masks",
+                               pattern = ".RDS",
+                               full.names = TRUE), 1, function(file){
+                                 print(file)
+                                 df <- readRDS(file)
+                                 return(df)
+                               }) %>%
+  setNames(c("An_Gambiae","An_Stephensi","Cx_Annuli","Main"))
+bias_masks_index <- c(4,4,1,2,3,4,4,4)
+
+
+#------------------------------------------------------
+# Load in ecoregion shapefiles
+#------------------------------------------------------
+ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
+                         pattern = ".RDS",
+                         full.names = TRUE), 1, function(file){
+                           print(file)
+                           shapefile <- readRDS(file)
+                           return(shapefile)
+                           }) %>%
+  setNames(c("Ae_Aegypti","Ae_Albopictus","An_Gambiae","An_Stephensi",
+             "Cx_Annuli","Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
 
 
 #------------------------------------------------------
@@ -41,15 +60,42 @@ rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD"
 predictors_preStack <- setNames(predictors_preStack, rasterNames)
 
 
+
 #------------------------------------------------------
-# Compress predictors into a stacked raster for each activity season combination
+## PREPARE BACKGROUND CELLS BY SPECIES ##
 #------------------------------------------------------
-predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
-predictors_photoSeason <- predictors_preStack[c(1:8,11)] %>% stack()
-predictors_precipSeason <- predictors_preStack[c(1:6,9:11)] %>% stack()
-predictor_sum_yearRound <- raster("Environmental Predictors Summed/Predictor_Sum_YearRound.tif")
-predictor_sum_photoSeason <- raster("Environmental Predictors Summed/Predictor_Sum_PhotoSeason.tif")
-predictor_sum_precipSeason <- raster("Environmental Predictors Summed/Predictor_Sum_PrecipSeason.tif")
+for(i in 1:length(SpeciesOfInterest_Names)) {
+  print(paste0("Species of interest is ", SpeciesOfInterest_Names[i]))
+  
+  #------------------------------------------------------
+  # Filter bg to those within ecoregion
+  #------------------------------------------------------
+  sf::sf_use_s2(FALSE)
+  bg_mask <- bias_masks[[(bias_masks_index[[i]])]]
+  bg_sf <- st_as_sf(bg_mask, coords = c("longitude","latitude"),
+                    crs = 4326, agr = "constant")
+  
+  bg_eco_intersect <- st_intersects(bg_sf, ecoregions[[i]])
+  bg_eco_inds <- purrr::map_dbl(bg_eco_intersect, function(x) length(x)) %>% 
+    magrittr::is_greater_than(0) %>% which()
+  bg_eco_points <- bg_sf[bg_eco_inds,]
+  
+  
+  #------------------------------------------------------
+  # Filter bg to those with activity season > 0
+  #------------------------------------------------------
+  
+  
+  #------------------------------------------------------
+  # Filter bg to those with summed rasters > 0
+  #------------------------------------------------------
+  
+  
+  
+}
+
+
+
 
 
 #------------------------------------------------------
@@ -63,13 +109,7 @@ sampling_ranges <- alply(list.files("Sampling Range Maps",
                                      return(rast)
                                    })
 
-bias_masks <- alply(list.files("Bias Masks",
-                                  pattern = ".tif",
-                                  full.names = TRUE), 1, function(file){
-                                    print(file)
-                                    rast <- raster(file)
-                                    return(rast)
-                                  })
+
 
 
 
