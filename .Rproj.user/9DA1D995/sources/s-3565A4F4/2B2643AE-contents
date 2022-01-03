@@ -92,9 +92,15 @@ predictors_photoSeason <- predictors_preStack[c(1:6,11,7:8)] %>% stack()
 predictors_precipSeason <- predictors_preStack[c(1:6,11,9:10)] %>% stack()
 
 
+#------------------------------------------------------
+# Create lists and containers
+#------------------------------------------------------
+bg_points_list <- c()
+occ_points_list <- c()
+
 
 #------------------------------------------------------
-## PREPARE BACKGROUND CELLS BY SPECIES ##
+## PREPARE CELLS BY SPECIES ##
 #------------------------------------------------------
 for(i in 1:length(SpeciesOfInterest_Names)) {
   print(paste0("Species of interest is ", SpeciesOfInterest_Names[i]))
@@ -132,6 +138,24 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   bg_summed <- raster::extract(activity_lengths[[i]], bg_activity_points)
   bg_points <- bg_activity_points[bg_summed > 0,]
+  bg_points_list <- c(bg_points_list,
+                      bg_points)
+  
+  
+  #------------------------------------------------------
+  # Acquire raster cells of occurrence points
+  #------------------------------------------------------
+  occ_longlat <- Mosquitoes_SpeciesOfInterest %>%
+    filter(species == SpeciesOfInterest_Names[[i]]) %>%
+    dplyr::select(c(decimalLongitude, decimalLatitude)) %>%
+    as.matrix()
+  rast <- predictors_preStack[[1]] # Acquire any global raster to get cells from
+  
+  occ_points <- cellFromXY(rast, occ_longlat) %>% as.data.frame() %>%
+    setNames("cell") %>%
+    mutate(longitude = xFromCell(rast, cell),
+           latitude = yFromCell(rast, cell)) %>%
+    filter(!is.na(longitude) & !is.na(latitude))
   
 }
 
