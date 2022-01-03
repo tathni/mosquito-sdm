@@ -2,7 +2,7 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Check the summed stack of environmental covariates by activity season
+# Description: Create a summed, stair-step stack of environmental covariates for checking NAs
 #######################################################
 
 source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
