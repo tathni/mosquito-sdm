@@ -1,27 +1,27 @@
 {
-    "id": "389F46C3",
-    "path": "~/GitHub/mosquito-sdm/6-raster-sum.R",
-    "project_path": "6-raster-sum.R",
+    "id": "1F201536",
+    "path": "~/GitHub/mosquito-sdm/7-raster-sum-checks.R",
+    "project_path": "7-raster-sum-checks.R",
     "type": "r_source",
-    "hash": "1476592152",
+    "hash": "0",
     "contents": "",
     "dirty": false,
-    "created": 1640806195748.0,
+    "created": 1641238757558.0,
     "source_on_save": false,
-    "relative_order": 4,
+    "relative_order": 5,
     "properties": {
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "51,71",
-        "scrollLine": "28"
+        "cursorPosition": "62,36",
+        "scrollLine": "20"
     },
     "folds": "",
-    "lastKnownWriteTime": 1641062810,
+    "lastKnownWriteTime": 1641239003,
     "encoding": "ISO8859-1",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1641062810930,
+    "last_content_update": 1641239003713,
     "read_only": false,
     "read_only_alternatives": []
 }

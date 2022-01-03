@@ -46,39 +46,3 @@ writeRaster(predictor_sum_photoSeason, filename = "Environmental Predictors Summ
 writeRaster(predictor_sum_precipSeason, filename = "Environmental Predictors Summed/Predictor_Sum_PrecipSeason.tif", format = "GTiff", overwrite=T)
 
 
-#------------------------------------------------------
-# Check which layers have most NAs by assigning each layer's NA an increasing stairstep value, 0 otherwise
-#------------------------------------------------------
-incrementer <- c(1,10,100,1000,10000,100000,1000000,10000000,100000000)
-predictors_yearRound_check <- predictors_yearRound
-predictors_photoSeason_check <- predictors_photoSeason
-predictors_precipSeason_check <- predictors_precipSeason
-
-for(i in 1:9) {
-  predictors_yearRound_check[[i]][is.na(predictors_yearRound_check[[i]])] <- incrementer[i]
-  predictors_yearRound_check[[i]][!is.na(predictors_yearRound_check[[i]])] <- 0
-  
-  predictors_photoSeason_check[[i]][is.na(predictors_photoSeason_check[[i]])] <- incrementer[i]
-  predictors_photoSeason_check[[i]][!is.na(predictors_photoSeason_check[[i]])] <- 0
-  
-  predictors_precipSeason_check[[i]][is.na(predictors_precipSeason_check[[i]])] <- incrementer[i]
-  predictors_precipSeason_check[[i]][!is.na(predictors_precipSeason_check[[i]])] <- 0
-}
-
-
-#------------------------------------------------------
-# Sum the raster check stacks
-#------------------------------------------------------
-predictor_sum_yearRound_check <- sum(predictors_yearRound_check)
-predictor_sum_photoSeason_check <- sum(predictors_photoSeason_check)
-predictor_sum_precipSeason_check <- sum(predictors_precipSeason_check)
-
-
-#------------------------------------------------------
-# Save raster check sums
-#------------------------------------------------------
-writeRaster(predictor_sum_yearRound_check, filename = "Environmental Predictors Summed/Predictor_Sum_YearRound_Check.tif", format = "GTiff", overwrite=T)
-writeRaster(predictor_sum_photoSeason_check, filename = "Environmental Predictors Summed/Predictor_Sum_PhotoSeason_Check.tif", format = "GTiff", overwrite=T)
-writeRaster(predictor_sum_precipSeason_check, filename = "Environmental Predictors Summed/Predictor_Sum_PrecipSeason_Check.tif", format = "GTiff", overwrite=T)
-
-
