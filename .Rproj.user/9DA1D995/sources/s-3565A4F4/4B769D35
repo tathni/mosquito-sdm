@@ -1,26 +1,27 @@
 {
-    "id": "8FC183BF",
-    "path": "~/GitHub/mosquito-sdm/9-raster-data-extraction.R",
-    "project_path": "9-raster-data-extraction.R",
+    "id": "4B769D35",
+    "path": "~/GitHub/mosquito-sdm/6-raster-sum.R",
+    "project_path": "6-raster-sum.R",
     "type": "r_source",
     "hash": "0",
     "contents": "",
     "dirty": false,
-    "created": 1640762688289.0,
+    "created": 1641242263377.0,
     "source_on_save": false,
-    "relative_order": 4,
+    "relative_order": 6,
     "properties": {
+        "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "179,44",
-        "scrollLine": "163"
+        "cursorPosition": "27,0",
+        "scrollLine": "0"
     },
     "folds": "",
-    "lastKnownWriteTime": 1640235965,
+    "lastKnownWriteTime": 1641238756,
     "encoding": "ISO8859-1",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1640235965,
+    "last_content_update": 1641238756,
     "read_only": false,
     "read_only_alternatives": []
 }

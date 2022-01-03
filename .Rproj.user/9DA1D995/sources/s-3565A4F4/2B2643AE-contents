@@ -47,7 +47,35 @@ ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
 
 
 #------------------------------------------------------
-# Load in environmental predictors
+# Load in activity season length rasters
+#------------------------------------------------------
+activity_lengths <- alply(list.files("Activity Season Lengths",
+                                        pattern = ".tif",
+                                        full.names = TRUE), 1, function(file){
+                                          print(file)
+                                          rast <- raster(file)
+                                          return(rast)
+                                        }) %>%
+  setNames(c("Photoperiod","Precipitation"))
+activity_lengths_index <- c(NA,1,2,NA,NA,1,NA,1)
+
+
+#------------------------------------------------------
+# Load in summed environmental predictors
+#------------------------------------------------------
+predictor_sums <- alply(list.files("Environmental Predictors Summed",
+                                     pattern = ".tif",
+                                     full.names = TRUE), 1, function(file){
+                                       print(file)
+                                       rast <- raster(file)
+                                       return(rast)
+                                     }) %>%
+  setNames(c("Photoperiod","Precipitation","YearRound"))
+predictor_sums_index <- c(3,1,2,3,3,1,3,1)
+  
+
+#------------------------------------------------------
+# Load in environmental predictors and stack by activity season
 #------------------------------------------------------
 predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                         pattern = ".tif",
@@ -58,6 +86,10 @@ predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                         })
 rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
 predictors_preStack <- setNames(predictors_preStack, rasterNames)
+
+predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:6,11,7:8)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,11,9:10)] %>% stack()
 
 
 
@@ -84,18 +116,36 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Filter bg to those with activity season > 0
   #------------------------------------------------------
+  if(SpeciesOfInterest_Names[[i]] %in% c("Aedes albopictus",
+                                         "Anopheles gambiae",
+                                         "Culex pipiens",
+                                         "Culex tarsalis")) {
+    bg_activity_length <- raster::extract(activity_lengths[[i]], bg_eco_points)
+    bg_activity_points <- bg_eco_points[bg_activity_length > 0,]
+  } else {
+    bg_activity_points <- bg_eco_points
+  }
   
   
   #------------------------------------------------------
   # Filter bg to those with summed rasters > 0
   #------------------------------------------------------
-  
-  
+  bg_summed <- raster::extract(activity_lengths[[i]], bg_activity_points)
+  bg_points <- bg_activity_points[bg_summed > 0,]
   
 }
 
 
 
+#------------------------------------------------------
+## EXTRACT TEMPERATURE VALUES BY SPECIES ##
+#------------------------------------------------------
+
+# ??
+
+
+
+# keep little snippet below for script 9, and remove all below
 
 
 #------------------------------------------------------
