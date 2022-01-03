@@ -15,8 +15,9 @@
 * 4d-species-list.csv:
 * 5-raster-merge.R:
 * 6-raster-sum.R:
-* 7-breadth-checks.R:
-* 8-raster-data-extraction.R:
-* 9-raster-summary-figures.R:
-* 10-xgboost-model.R:
-* 11-model-output-figures.R:
+* 7-raster-sum-checks.R:
+* 8-breadth-checks.R:
+* 9-raster-data-extraction.R:
+* 10-raster-summary-figures.R:
+* 11-xgboost-model.R:
+* 12-model-output-figures.R:
