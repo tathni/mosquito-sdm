@@ -2,11 +2,10 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Merge all individual Google Earth Engine rasters
+# Description: Merge all individual Google Earth Engine environmental covariates
 #######################################################
 
 source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
-predictors = TRUE  # Merging environmental predictors or activity season rasters?
 
 
 #------------------------------------------------------
@@ -38,39 +37,22 @@ toc - tic
 
 
 #------------------------------------------------------
-# Processing for environmental predictor rasters
+# Name the environmental covariates in the list
 #------------------------------------------------------
-if(predictors == TRUE) {
-  rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
-  inputPredictors %<>% setNames(rasterNames) 
-  
-  #------------------------------------------------------
-  # Crop the temperature rasters to landmasses and remove ocean background
-  #------------------------------------------------------
-  inputPredictors[[7]] <- raster::mask(inputPredictors[[7]], wrld_simpl) # PhotoASTM
-  inputPredictors[[8]] <- raster::mask(inputPredictors[[8]], wrld_simpl) # PhotoASTSD
-  inputPredictors[[9]] <- raster::mask(inputPredictors[[9]], wrld_simpl) # PrecipASTM
-  inputPredictors[[10]] <- raster::mask(inputPredictors[[10]], wrld_simpl) # PrecipASTSD
-  inputPredictors[[12]] <- raster::mask(inputPredictors[[12]], wrld_simpl) # TAM
-  inputPredictors[[13]] <- raster::mask(inputPredictors[[13]], wrld_simpl) # TASD
-}
+rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
+inputPredictors %<>% setNames(rasterNames) 
 
 
 
 #------------------------------------------------------
-# Processing for activity season rasters
+# Crop only the temperature rasters to landmasses and remove ocean background
 #------------------------------------------------------
-if(predictors == FALSE) {
-  rasterNames <- c("PhotoAS_LastDay","PhotoAS_Length","PhotoAS_StartDay","PrecipAS_LastDay","PrecipAS_Length","PrecipAS_StartDay")
-  inputPredictors %<>% setNames(rasterNames)
-  
-  #------------------------------------------------------
-  # Change Africa precipitation activity season's raster extents to global
-  #------------------------------------------------------
-  inputPredictors[[4]] %<>% raster::extend(inputPredictors[[1]], value=NA)
-  inputPredictors[[5]] %<>% raster::extend(inputPredictors[[1]], value=NA)
-  inputPredictors[[6]] %<>% raster::extend(inputPredictors[[1]], value=NA)
-}
+inputPredictors[[7]] <- raster::mask(inputPredictors[[7]], wrld_simpl) # PhotoASTM
+inputPredictors[[8]] <- raster::mask(inputPredictors[[8]], wrld_simpl) # PhotoASTSD
+inputPredictors[[9]] <- raster::mask(inputPredictors[[9]], wrld_simpl) # PrecipASTM
+inputPredictors[[10]] <- raster::mask(inputPredictors[[10]], wrld_simpl) # PrecipASTSD
+inputPredictors[[12]] <- raster::mask(inputPredictors[[12]], wrld_simpl) # TAM
+inputPredictors[[13]] <- raster::mask(inputPredictors[[13]], wrld_simpl) # TASD
 
 
 

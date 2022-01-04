@@ -94,13 +94,13 @@ predictors_precipSeason <- predictors_preStack[c(1:6,11,9:10)] %>% stack()
 
 
 #------------------------------------------------------
-## PREPARE OCC CELLS AND BG MASK BY SPECIES ##
+## STEP 1: PREPARE OCC CELLS AND BG MASK BY SPECIES ##
 #------------------------------------------------------
 occ_cells_list <- c()
 bg_mask_list <- c()
 
 for(i in 1:length(SpeciesOfInterest_Names)) {
-  print(paste0("-- Preparing occ cells and bg mask for ", SpeciesOfInterest_Names[i]," --"))
+  print(paste0("-- Step 1: Preparing occ cells and bg mask for ", SpeciesOfInterest_Names[i]," --"))
   
   #------------------------------------------------------
   # Acquire unique raster cells of occurrence points
@@ -113,10 +113,22 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   rast <- predictors_preStack[[1]] # Choose any generic raster to acquire cells from
   rast <- activity_lengths[[2]]  ## ??? why is gambiae cells different when extracting from this vs. other raster? same CRS?
   
+  ## 
+  
+  
+  occ_sf <- st_as_sf(occ_longlat, coords = c("decimalLongitude","decimalLatitude"),
+                     crs = 4326, agr = "constant")
+  
+  
+  ## get cellFromXY, get unique(), then XfromCEll and YfromCell
+  
+  
   occ_cells <- cellFromXY(rast, occ_longlat) %>% as.data.frame() %>%
     setNames("cell") %>%
     filter(!is.na(cell)) %>%
     unique()
+  
+  ## occ should be an sf object
   
   
   #------------------------------------------------------
@@ -127,7 +139,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
                                          "Anopheles gambiae",
                                          "Culex pipiens",
                                          "Culex tarsalis")) {
-    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_cells$cell)
+    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_cells)
     occ_activity_cells <- occ_cells[which(occ_activity_length > 0),] %>% as.data.frame()
   } else {
     occ_activity_cells <- occ_cells
@@ -136,7 +148,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   occ_cells_list <- c(occ_cells_list,
                       list(occ_activity_cells))
   
-  
+  ## rename CELLS to SF
   
   #------------------------------------------------------
   # Filter bg mask to cells within ecoregion
@@ -182,7 +194,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 
 
 #------------------------------------------------------
-## EXTRACT TEMPERATURE VALUES BY SPECIES ##
+## STEP 2: EXTRACT TEMPERATURE VALUES BY SPECIES ##
 #------------------------------------------------------
 occ_temp_mean_list <- c()
 bg_temp_mean_list <- c()
@@ -191,7 +203,7 @@ bg_temp_sd_list <- c()
 
 for(i in 1:length(SpeciesOfInterest_Names)) {
   set.seed(seedNum)
-  print(paste0("-- Extracting temperature values for ", SpeciesOfInterest_Names[i]," --"))
+  print(paste0("-- Step 2: Extracting temperature values for ", SpeciesOfInterest_Names[i]," --"))
   
   #------------------------------------------------------
   # Set predictor stack according to specific activity season setting
@@ -229,19 +241,19 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   # Extract temperature mean and SD values for occ and bg
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting temperature mean values for occ and bg"))
-  occ_temp_mean <- cbind(data.frame(raster::extract(predictors[[8]], cells_occ$cell)),
-                         cells_occ$cell) %>%
+  occ_temp_mean <- cbind(data.frame(raster::extract(predictors[[8]], cells_occ)),
+                         cells_occ) %>%
     setNames(c("temp_mean","cell"))
-  bg_temp_mean <- cbind(data.frame(raster::extract(predictors[[8]], cells_bg$cell)),
-                        cells_bg$cell) %>%
+  bg_temp_mean <- cbind(data.frame(raster::extract(predictors[[8]], cells_bg)),
+                        cells_bg) %>%
     setNames(c("temp_mean","cell"))
   
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting temperature SD values for occ and bg"))
-  occ_temp_sd <- cbind(data.frame(raster::extract(predictors[[9]], cells_occ$cell)),
-                       cells_occ$cell) %>%
+  occ_temp_sd <- cbind(data.frame(raster::extract(predictors[[9]], cells_occ)),
+                       cells_occ) %>%
     setNames(c("temp_sd","cell"))
-  bg_temp_sd <- cbind(data.frame(raster::extract(predictors[[9]], cells_bg$cell)),
-                      cells_bg$cell) %>%
+  bg_temp_sd <- cbind(data.frame(raster::extract(predictors[[9]], cells_bg)),
+                      cells_bg) %>%
     setNames(c("temp_sd","cell"))
   
   
@@ -266,6 +278,19 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 #------------------------------------------------------
 
 # ??
+
+
+#------------------------------------------------------
+# Percentile and full range tables
+#------------------------------------------------------
+
+
+
+#------------------------------------------------------
+# Boxplots
+#------------------------------------------------------
+
+
 
 
 # keep little snippet below for script 9, and remove all below
