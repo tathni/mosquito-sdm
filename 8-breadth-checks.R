@@ -114,9 +114,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   occ_cells <- cellFromXY(rast, occ_longlat) %>% as.data.frame() %>%
     setNames("cell") %>%
-    mutate(longitude = xFromCell(rast, cell),
-           latitude = yFromCell(rast, cell)) %>%
-    filter(!is.na(longitude) & !is.na(latitude))
+    filter(!is.na(cell))
   
   
   #------------------------------------------------------
@@ -127,14 +125,14 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
                                          "Anopheles gambiae",
                                          "Culex pipiens",
                                          "Culex tarsalis")) {
-    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_cells)
+    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_cells$cell)
     occ_activity_cells <- occ_cells[which(occ_activity_length > 0),]
   } else {
     occ_activity_cells <- occ_cells
   }
   
   occ_cells_list <- c(occ_cells_list,
-                      occ_activity_cells)
+                      list(occ_activity_cells))
   
   
   
@@ -175,7 +173,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   bg_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], bg_activity_cells)
   bg_summed_cells <- bg_activity_cells[which(bg_summed > 0),]
   bg_mask_list <- c(bg_mask_list,
-                    bg_summed_cells)
+                    list(bg_summed_cells))
   
 }
 
@@ -214,11 +212,13 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Select occ cells and random sample background cells from weighted bias mask at (2x occ) multiplier
   #------------------------------------------------------
-  print(paste0("[",SpeciesOfInterest_Names[i],"]: Random sampling bg mask raster cells"))
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Select occ cells and random sampling bg mask cells"))
   cells_occ <- occ_cells_list[[i]]
-  cells_bg <- sample(bg_mask_list[[i]],
-                     size = 2*nrow(occ_cells_list[[i]]),
-                     replace = FALSE, prob = count/sum(count))
+  
+  bg_df <- bg_mask_list[[i]]
+  cells_bg <- sample(bg_df,
+                     size = 2*nrow(cells_occ),
+                     replace = FALSE, prob = bg_df$count/sum(bg_df$count))
   
   
   #------------------------------------------------------
@@ -241,10 +241,10 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   # Save extracted temperature mean and SD dataframes
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Saving extracted temperature mean/SD dataframes"))
-  occ_temp_mean_list <- c(occ_temp_mean_list, occ_temp_mean)
-  bg_temp_mean_list <- c(bg_temp_mean_list, bg_temp_mean)
-  occ_temp_sd_list <- c(occ_temp_sd_list, occ_temp_sd)
-  bg_temp_sd_list <- c(bg_temp_sd_list, bg_temp_sd)
+  occ_temp_mean_list <- c(occ_temp_mean_list, list(occ_temp_mean))
+  bg_temp_mean_list <- c(bg_temp_mean_list, list(bg_temp_mean))
+  occ_temp_sd_list <- c(occ_temp_sd_list, list(occ_temp_sd))
+  bg_temp_sd_list <- c(bg_temp_sd_list, list(bg_temp_sd))
   
 }
 
