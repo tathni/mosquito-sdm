@@ -94,100 +94,103 @@ predictors_precipSeason <- predictors_preStack[c(1:6,11,9:10)] %>% stack()
 
 
 #------------------------------------------------------
-## STEP 1: PREPARE OCC CELLS AND BG MASK BY SPECIES ##
+## STEP 1: PREPARE OCC SF OBJECTS AND BG MASK BY SPECIES ##
 #------------------------------------------------------
-occ_cells_list <- c()
+occ_sf_list <- c()
 bg_mask_list <- c()
 
 for(i in 1:length(SpeciesOfInterest_Names)) {
-  print(paste0("-- Step 1: Preparing occ cells and bg mask for ", SpeciesOfInterest_Names[i]," --"))
+  print(paste0("-- Step 1: Preparing occ sf objects and bg mask for ", SpeciesOfInterest_Names[i]," --"))
   
   #------------------------------------------------------
-  # Acquire unique raster cells of occurrence points
+  ## OCCURRENCES ##
   #------------------------------------------------------
-  print(paste0("[",SpeciesOfInterest_Names[i],"]: Acquiring raster cells for occ"))
-  occ_longlat <- Mosquitoes_SpeciesOfInterest %>%
+  #------------------------------------------------------
+  # Acquire unique raster centroids and create sf object of occurrence points
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Acquiring unique raster centroids and create sf object for occ"))
+  
+  occ_points <- Mosquitoes_SpeciesOfInterest %>%
     filter(species == SpeciesOfInterest_Names[[i]]) %>%
     dplyr::select(c(decimalLongitude, decimalLatitude))
   
-  rast <- predictors_preStack[[1]] # Choose any generic raster to acquire cells from
-  rast <- activity_lengths[[2]]  ## ??? why is gambiae cells different when extracting from this vs. other raster? same CRS?
+  rast <- predictors_preStack[[1]] # Choose any generic raster to acquire cells and centroids from
   
-  ## 
+  occ_longlat <- cellFromXY(rast, occ_points) %>% as.data.frame() %>%
+    setNames("cell") %>% unique() %>%
+    mutate(longitude = xFromCell(rast, cell),  # Acquire longitude (x) and latitude (y) from cell centroids
+           latitude = yFromCell(rast, cell)) %>%
+    dplyr::select(-cell) %>% # Cell number is now obsolete if working from (x,y) as an sf object
+    filter(!is.na(longitude) & !is.na(latitude)) # Remove the NA locations
   
-  
-  occ_sf <- st_as_sf(occ_longlat, coords = c("decimalLongitude","decimalLatitude"),
+  occ_sf <- st_as_sf(occ_longlat, coords = c("longitude","latitude"),
                      crs = 4326, agr = "constant")
   
   
-  ## get cellFromXY, get unique(), then XfromCEll and YfromCell
-  
-  
-  occ_cells <- cellFromXY(rast, occ_longlat) %>% as.data.frame() %>%
-    setNames("cell") %>%
-    filter(!is.na(cell)) %>%
-    unique()
-  
-  ## occ should be an sf object
-  
-  
   #------------------------------------------------------
-  # Filter occ to cells with activity season length > 0
+  # Filter occ to locations with activity season length > 0
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Activity season length filtering for occ"))
+  
   if(SpeciesOfInterest_Names[[i]] %in% c("Aedes albopictus",
                                          "Anopheles gambiae",
                                          "Culex pipiens",
                                          "Culex tarsalis")) {
-    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_cells)
-    occ_activity_cells <- occ_cells[which(occ_activity_length > 0),] %>% as.data.frame()
+    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_sf)
+    occ_activity_sf <- occ_sf[which(occ_activity_length > 0),]
   } else {
-    occ_activity_cells <- occ_cells
+    occ_activity_sf <- occ_sf
   }
   
-  occ_cells_list <- c(occ_cells_list,
-                      list(occ_activity_cells))
+  occ_sf_list <- c(occ_sf_list,
+                   list(occ_activity_sf))
   
-  ## rename CELLS to SF
   
   #------------------------------------------------------
-  # Filter bg mask to cells within ecoregion
+  ## BACKGROUND MASK ##
+  #------------------------------------------------------
+  #------------------------------------------------------
+  # Filter bg mask to locations within ecoregion
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Ecoregion filtering for bg mask"))
-  sf::sf_use_s2(FALSE)
+  
   bg_mask <- bias_masks[[(bias_masks_index[[i]])]]
+  
+  sf::sf_use_s2(FALSE)
   bg_sf <- st_as_sf(bg_mask, coords = c("longitude","latitude"),
                     crs = 4326, agr = "constant")
   
   bg_eco_intersect <- st_intersects(bg_sf, ecoregions[[i]])
   bg_eco_inds <- purrr::map_dbl(bg_eco_intersect, function(x) length(x)) %>% 
     magrittr::is_greater_than(0) %>% which()
-  bg_eco_cells <- bg_sf[bg_eco_inds,]
+  bg_eco_sf <- bg_sf[bg_eco_inds,]
   
   
   #------------------------------------------------------
-  # Filter bg mask to cells with activity season length > 0
+  # Filter bg mask to locations with activity season length > 0
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Activity season length filtering for bg mask"))
+  
   if(SpeciesOfInterest_Names[[i]] %in% c("Aedes albopictus",
                                          "Anopheles gambiae",
                                          "Culex pipiens",
                                          "Culex tarsalis")) {
-    bg_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[i])]], bg_eco_cells)
-    bg_activity_cells <- bg_eco_cells[which(bg_activity_length > 0),]
+    bg_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[i])]], bg_eco_sf)
+    bg_activity_sf <- bg_eco_sf[which(bg_activity_length > 0),]
   } else {
-    bg_activity_cells <- bg_eco_cells
+    bg_activity_sf <- bg_eco_sf
   }
   
   
   #------------------------------------------------------
-  # Filter bg mask to cells with summed rasters > 0
+  # Filter bg mask to locations with summed rasters > 0
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Summed rasters filtering for bg mask"))
-  bg_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], bg_activity_cells)
-  bg_summed_cells <- bg_activity_cells[which(bg_summed > 0),]
+  
+  bg_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], bg_activity_sf)
+  bg_summed_sf <- bg_activity_sf[which(bg_summed > 0),]
   bg_mask_list <- c(bg_mask_list,
-                    list(bg_summed_cells))
+                    list(bg_summed_sf))
   
 }
 
@@ -224,37 +227,39 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   #------------------------------------------------------
-  # Select occ cells and random sample background cells from weighted bias mask at (2x occ) multiplier
+  # Select occ and random sample bg from weighted bias mask at (2x occ) multiplier
   #------------------------------------------------------
-  print(paste0("[",SpeciesOfInterest_Names[i],"]: Select occ cells and random sampling bg mask cells"))
-  cells_occ <- occ_cells_list[[i]] %>%
-    setNames("cell")
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Selecting occ and random sampling bg from weighted bias mask "))
+  
+  occ <- occ_sf_list[[i]]
   
   bg_df <- bg_mask_list[[i]] %>%
     mutate(weight = count/sum(count))
-  cells_bg <- bg_df[sample(nrow(bg_df),
-                           size = 2*nrow(cells_occ),
-                           replace = FALSE, prob = bg_df$weight),]
+  bg <- bg_df[sample(nrow(bg_df),
+                     size = 2*nrow(occ),
+                     replace = FALSE,
+                     prob = bg_df$weight),]
   
   
   #------------------------------------------------------
   # Extract temperature mean and SD values for occ and bg
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting temperature mean values for occ and bg"))
-  occ_temp_mean <- cbind(data.frame(raster::extract(predictors[[8]], cells_occ)),
-                         cells_occ) %>%
-    setNames(c("temp_mean","cell"))
-  bg_temp_mean <- cbind(data.frame(raster::extract(predictors[[8]], cells_bg)),
-                        cells_bg) %>%
-    setNames(c("temp_mean","cell"))
+  
+  occ_temp_mean <- data.frame(raster::extract(predictors[[8]], occ)) %>%
+    cbind(st_coordinates(occ) %>% as.data.frame()) %>%
+    setNames(c("temp_mean","longitude","latitude"))
+  bg_temp_mean <- data.frame(raster::extract(predictors[[8]], bg)) %>%
+    cbind(st_coordinates(bg) %>% as.data.frame()) %>%
+    setNames(c("temp_mean","longitude","latitude"))
   
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting temperature SD values for occ and bg"))
-  occ_temp_sd <- cbind(data.frame(raster::extract(predictors[[9]], cells_occ)),
-                       cells_occ) %>%
-    setNames(c("temp_sd","cell"))
-  bg_temp_sd <- cbind(data.frame(raster::extract(predictors[[9]], cells_bg)),
-                      cells_bg) %>%
-    setNames(c("temp_sd","cell"))
+  occ_temp_sd <- data.frame(raster::extract(predictors[[9]], occ)) %>%
+    cbind(st_coordinates(occ) %>% as.data.frame()) %>%
+    setNames(c("temp_sd","longitude","latitude"))
+  bg_temp_sd <- data.frame(raster::extract(predictors[[9]], bg)) %>%
+    cbind(st_coordinates(bg) %>% as.data.frame()) %>%
+    setNames(c("temp_sd","longitude","latitude"))
   
   
   #------------------------------------------------------
@@ -271,11 +276,84 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 
 
 #------------------------------------------------------
-## TEMPERATURE BREADTH FIGURES ##
+## THERMAL BREADTH FIGURES ##
 #------------------------------------------------------
-#------------------------------------------------------
-# Histograms
-#------------------------------------------------------
+for(i in 1:length(SpeciesOfInterest_Names)) {
+  occ_temp_mean <- occ_temp_mean_list[[i]] %>% mutate(set = "Occurrence")
+  bg_temp_mean <- bg_temp_mean_list[[i]] %>% mutate(set = "Background")
+  temp_mean_df <- rbind(occ_temp_mean, bg_temp_mean)
+  
+  occ_temp_sd <- occ_temp_sd_list[[i]] %>% mutate(set = "Occurrence")
+  bg_temp_sd <- bg_temp_sd_list[[i]] %>% mutate(set = "Background")
+  temp_sd_df <- rbind(occ_temp_sd, bg_temp_sd)
+  
+  
+  #------------------------------------------------------
+  # Histograms
+  #------------------------------------------------------
+  save_name <- paste0("Thermal Breadth Check Figures/Histograms/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
+  gg_hist_mean <- ggplot(temp_mean_df, aes(x = temp_mean, fill = set)) +
+    geom_histogram(alpha = 0.6, position = "identity") +
+    xlab("Temperature Mean (C)") +
+    ylab("Count") +
+    theme_bw() +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
+    labs(fill = "Set")
+  ggsave(gg_hist_mean, file = paste0(save_name))
+  
+  save_name <- paste0("Thermal Breadth Check Figures/Histograms/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
+  gg_hist_sd <- ggplot(temp_sd_df, aes(x = temp_sd, fill = set)) +
+    geom_histogram(alpha = 0.6, position = "identity") +
+    xlab("Temperature Standard Deviation (C)") +
+    ylab("Count") +
+    theme_bw() +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
+    labs(fill = "Set")
+  ggsave(gg_hist_sd, file = paste0(save_name))
+  
+  
+  #------------------------------------------------------
+  # Boxplots
+  #------------------------------------------------------
+  save_name <- paste0("Thermal Breadth Check Figures/Boxplots/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
+  gg_boxplot_mean <- ggplot(temp_mean_df, aes(x = set, y = temp_mean, fill = set)) +
+    geom_boxplot(alpha = 0.7) +
+    xlab("Set") +
+    ylab("Temperature Mean (C)") +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
+    labs(fill = "Set") +
+    theme_bw() +
+    coord_flip()
+  ggsave(gg_boxplot_mean, file = paste0(save_name))
+  
+  save_name <- paste0("Thermal Breadth Check Figures/Boxplots/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
+  gg_boxplot_sd <- ggplot(temp_sd_df, aes(x = set, y = temp_sd, fill = set)) +
+    geom_boxplot(alpha = 0.7) +
+    xlab("Set") +
+    ylab("Temperature Standard Deviation (C)") +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
+    labs(fill = "Set") +
+    theme_bw() +
+    coord_flip()
+  ggsave(gg_boxplot_sd, file = paste0(save_name))
+  
+  
+  #------------------------------------------------------
+  # Combined plots
+  #------------------------------------------------------
+  save_name <- paste0("Thermal Breadth Check Figures/Combined/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
+  pdf(save_name)
+  grid.arrange(gg_hist_mean, gg_boxplot_mean + theme(plot.title = element_blank()), nrow=2)
+  dev.off()
+  
+  save_name <- paste0("Thermal Breadth Check Figures/Combined/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
+  pdf(save_name)
+  grid.arrange(gg_hist_sd, gg_boxplot_sd + theme(plot.title = element_blank()), nrow=2)
+  dev.off()
+  
+}
+
+
 
 # ??
 
@@ -293,7 +371,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 
 
 
-# keep little snippet below for script 9, and remove all below
+# keep little snippet below for script 9, and remove all below DELETE vv
 # need to add the filter stats savings
 
 

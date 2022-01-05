@@ -252,10 +252,10 @@ for(i in 1:length(bg_species_list)) {
 #------------------------------------------------------
 # Save RDS file for each weighted bias mask
 #------------------------------------------------------
-saveRDS(bg_longlat_Main, file = "Background_Mask_Main.RDS")
-saveRDS(bg_longlat_An_gambiae, file = "Background_Mask_An_Gambiae.RDS")
-saveRDS(bg_longlat_An_stephensi, file = "Background_Mask_An_Stephensi.RDS")
-saveRDS(bg_longlat_Cx_annuli, file = "Background_Mask_Cx_Annuli.RDS")
+saveRDS(bg_cells_Main, file = "Background_Mask_Main.RDS")
+saveRDS(bg_cells_An_gambiae, file = "Background_Mask_An_Gambiae.RDS")
+saveRDS(bg_cells_An_stephensi, file = "Background_Mask_An_Stephensi.RDS")
+saveRDS(bg_cells_Cx_annuli, file = "Background_Mask_Cx_Annuli.RDS")
 
 print("Saved all weighted background bias masks")
 
