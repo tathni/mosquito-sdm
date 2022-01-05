@@ -294,7 +294,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   save_name <- paste0("Thermal Breadth Check Figures/Histograms/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
   gg_hist_mean <- ggplot(temp_mean_df, aes(x = temp_mean, fill = set)) +
     geom_histogram(alpha = 0.6, position = "identity") +
-    xlab("Temperature Mean (C)") +
+    xlab("Temperature Mean (°C)") +
     ylab("Count") +
     theme_bw() +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
@@ -304,7 +304,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   save_name <- paste0("Thermal Breadth Check Figures/Histograms/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
   gg_hist_sd <- ggplot(temp_sd_df, aes(x = temp_sd, fill = set)) +
     geom_histogram(alpha = 0.6, position = "identity") +
-    xlab("Temperature Standard Deviation (C)") +
+    xlab("Temperature Standard Deviation (°C)") +
     ylab("Count") +
     theme_bw() +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
@@ -319,7 +319,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   gg_boxplot_mean <- ggplot(temp_mean_df, aes(x = set, y = temp_mean, fill = set)) +
     geom_boxplot(alpha = 0.7) +
     xlab("Set") +
-    ylab("Temperature Mean (C)") +
+    ylab("Temperature Mean (°C)") +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
     labs(fill = "Set") +
     theme_bw() +
@@ -330,7 +330,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   gg_boxplot_sd <- ggplot(temp_sd_df, aes(x = set, y = temp_sd, fill = set)) +
     geom_boxplot(alpha = 0.7) +
     xlab("Set") +
-    ylab("Temperature Standard Deviation (C)") +
+    ylab("Temperature Standard Deviation (°C)") +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
     labs(fill = "Set") +
     theme_bw() +
