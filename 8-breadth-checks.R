@@ -227,7 +227,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   #------------------------------------------------------
-  # Select occ and random sample bg from weighted bias mask at (2x occ) multiplier
+  # Select occ and random sample bg from weighted bias mask at (3x occ) multiplier
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Selecting occ and random sampling bg from weighted bias mask "))
   
@@ -236,7 +236,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   bg_df <- bg_mask_list[[i]] %>%
     mutate(weight = count/sum(count))
   bg <- bg_df[sample(nrow(bg_df),
-                     size = 2*nrow(occ),
+                     size = 3*nrow(occ),
                      replace = FALSE,
                      prob = bg_df$weight),]
   
@@ -291,7 +291,6 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Histograms
   #------------------------------------------------------
-  save_name <- paste0("Thermal Breadth Check Figures/Histograms/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
   gg_hist_mean <- ggplot(temp_mean_df, aes(x = temp_mean, fill = set)) +
     geom_histogram(alpha = 0.6, position = "identity") +
     xlab("Temperature Mean (°C)") +
@@ -299,9 +298,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
     theme_bw() +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
     labs(fill = "Set")
-  ggsave(gg_hist_mean, file = paste0(save_name))
   
-  save_name <- paste0("Thermal Breadth Check Figures/Histograms/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
   gg_hist_sd <- ggplot(temp_sd_df, aes(x = temp_sd, fill = set)) +
     geom_histogram(alpha = 0.6, position = "identity") +
     xlab("Temperature Standard Deviation (°C)") +
@@ -309,13 +306,11 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
     theme_bw() +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
     labs(fill = "Set")
-  ggsave(gg_hist_sd, file = paste0(save_name))
   
   
   #------------------------------------------------------
   # Boxplots
   #------------------------------------------------------
-  save_name <- paste0("Thermal Breadth Check Figures/Boxplots/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
   gg_boxplot_mean <- ggplot(temp_mean_df, aes(x = set, y = temp_mean, fill = set)) +
     geom_boxplot(alpha = 0.7) +
     xlab("Set") +
@@ -324,9 +319,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
     labs(fill = "Set") +
     theme_bw() +
     coord_flip()
-  ggsave(gg_boxplot_mean, file = paste0(save_name))
   
-  save_name <- paste0("Thermal Breadth Check Figures/Boxplots/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
   gg_boxplot_sd <- ggplot(temp_sd_df, aes(x = set, y = temp_sd, fill = set)) +
     geom_boxplot(alpha = 0.7) +
     xlab("Set") +
@@ -335,18 +328,17 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
     labs(fill = "Set") +
     theme_bw() +
     coord_flip()
-  ggsave(gg_boxplot_sd, file = paste0(save_name))
   
   
   #------------------------------------------------------
   # Combined plots
   #------------------------------------------------------
-  save_name <- paste0("Thermal Breadth Check Figures/Combined/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
+  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
   pdf(save_name)
   grid.arrange(gg_hist_mean, gg_boxplot_mean + theme(plot.title = element_blank()), nrow=2)
   dev.off()
   
-  save_name <- paste0("Thermal Breadth Check Figures/Combined/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
+  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
   pdf(save_name)
   grid.arrange(gg_hist_sd, gg_boxplot_sd + theme(plot.title = element_blank()), nrow=2)
   dev.off()
