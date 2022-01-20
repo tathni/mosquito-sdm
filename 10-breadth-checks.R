@@ -229,7 +229,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Select occ and random sample bg from weighted bias mask at (3x occ) multiplier
   #------------------------------------------------------
-  print(paste0("[",SpeciesOfInterest_Names[i],"]: Selecting occ and random sampling bg from weighted bias mask "))
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Selecting occ and random sampling bg from weighted bias mask"))
   
   occ <- occ_sf_list[[i]]
   
@@ -239,6 +239,24 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
                      size = 3*nrow(occ),
                      replace = FALSE,
                      prob = bg_df$weight),]
+  
+  
+  #------------------------------------------------------
+  # Plot occ and selected bg on ecoregion maps
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Plotting occ and selected bg on ecoregion maps"))
+  
+  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Occ on Ecoregion.pdf")
+  pdf(save_name)
+  plot(st_geometry(ecoregions[[i]]))
+  plot(st_geometry(occ), col="blue", add=TRUE)
+  dev.off()
+  
+  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Bg on Ecoregion.pdf")
+  pdf(save_name)
+  plot(st_geometry(ecoregions[[i]]))
+  plot(st_geometry(bg), col="red", add=TRUE)
+  dev.off()
   
   
   #------------------------------------------------------
