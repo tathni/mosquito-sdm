@@ -42,7 +42,7 @@ toc - tic
 #------------------------------------------------------
 if(activity_ssn == FALSE) {
   # rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
-  rasterNames <-c("CD","WS")
+  rasterNames <-c("EVIM","EVISD","FC")
   inputPredictors %<>% setNames(rasterNames) 
   
   # #------------------------------------------------------

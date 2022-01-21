@@ -1,26 +1,26 @@
 {
-    "id": "D5C0CAA2",
-    "path": "~/GitHub/mosquito-sdm/7-raster-merge.R",
-    "project_path": "7-raster-merge.R",
+    "id": "100D4552",
+    "path": "~/GitHub/mosquito-sdm/8-raster-sum.R",
+    "project_path": "8-raster-sum.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "916761654",
     "contents": "",
     "dirty": false,
-    "created": 1642710603750.0,
+    "created": 1642712520027.0,
     "source_on_save": false,
-    "relative_order": 5,
+    "relative_order": 6,
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "20,27",
-        "scrollLine": "0"
+        "cursorPosition": "32,55",
+        "scrollLine": "11"
     },
     "folds": "",
-    "lastKnownWriteTime": 1642731538,
+    "lastKnownWriteTime": 1642712596,
     "encoding": "ISO8859-1",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1642731538688,
+    "last_content_update": 1642712596638,
     "read_only": false,
     "read_only_alternatives": []
 }
