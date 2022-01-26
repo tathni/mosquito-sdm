@@ -189,8 +189,8 @@ predictors <- alply(list.files("Environmental Predictors Merged",
                                      return(rast)
                                    })
 
-rasterNames <- c("ELEV","EVIM","EVISD","FC","HP","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
-rasterNames_spaced <- c("Elevation",
+rasterNames <- c("CD","EVIM","EVISD","FC","HP","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
+rasterNames_spaced <- c("Cattle Density",
                         "Enhanced Vegetation Index - Mean",
                         "Enhanced Vegetation Index - Standard Deviation",
                         "Forest Cover %",
@@ -202,7 +202,8 @@ rasterNames_spaced <- c("Elevation",
                         "Precipitation Activity Season - Temperature Standard Deviation",
                         "Precipitation of the Wettest Quarter",
                         "Temperature Annual Mean",
-                        "Temperature Annual Standard Deviation")
+                        "Temperature Annual Standard Deviation",
+                        "Wind Speed")
 predictors <- setNames(predictors, rasterNames)
 
 for(i in 1:length(predictors)) {
@@ -258,21 +259,33 @@ for(i in 1:length(samplingMaps)) {
 #------------------------------------------------------
 # Pairs correlation plot
 #------------------------------------------------------
+predictors %<>% stack()
+set.seed(seedNum)
 
-set.seed(seedNum)
-pairs_possibleBg <- Mosquitoes_AllBackground %>%
-  dplyr::select(decimalLongitude, decimalLatitude) %>%
-  unique
-set.seed(seedNum)
-pairs_possibleBg <- pairs_possibleBg[sample(nrow(pairs_possibleBg), 15000), ] # Over-sample to account for NA's
-pairs_bg <- raster::extract(predictors, pairs_possibleBg)
-pairs_bg <- pairs_bg[complete.cases(pairs_bg), ]
-g = 10000
-set.seed(seedNum)
-pairs_sample <- pairs_bg[sample(nrow(pairs_bg), g), ] # Select 10k bg points for pairs sampling
+occ_points <- Mosquitoes_SpeciesOfInterest %>%
+  dplyr::select(c(decimalLongitude, decimalLatitude))
+
+rast <- predictors_preStack[[1]] # Choose any generic raster to acquire cells and centroids from
+
+occ_longlat <- cellFromXY(rast, occ_points) %>% as.data.frame() %>%
+  setNames("cell") %>% unique() %>%
+  mutate(longitude = xFromCell(rast, cell),  # Acquire longitude (x) and latitude (y) from cell centroids
+         latitude = yFromCell(rast, cell)) %>%
+  dplyr::select(-cell) %>% # Cell number is now obsolete if working from (x,y) as an sf object
+  filter(!is.na(longitude) & !is.na(latitude)) # Remove the NA locations
+
+occ_sf <- st_as_sf(occ_longlat, coords = c("longitude","latitude"),
+                   crs = 4326, agr = "constant")
+pairs_sample <- occ_sf[sample(nrow(occ_sf),
+                              size = 10000,
+                              replace = FALSE),] # Select 10k occ points for pairs sampling
+pairs_bg <- raster::extract(predictors, pairs_sample)
+
+pairs_bg2 <- pairs_bg %>% na.omit()
+
 
 pdf("Pairs Correlation Covariates.pdf", width=9, height=8)
-corrplot(cor(pairs_sample),
+corrplot(cor(pairs_bg2),
          method = "color",
          addCoef.col = "black",
          tl.col = "black", tl.srt = 45,

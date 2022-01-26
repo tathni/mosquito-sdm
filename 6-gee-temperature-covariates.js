@@ -1,5 +1,5 @@
 // This code is for extracting temperature covariates for use in a species distribution model of mosquitoes
-// Specifically, temperature covariates are defined for mosquitoes' activity season
+// Specifically, temperature covariates are defined for mosquitoes' activity season (temporal restriction)
 
 // Photoperiod- diapausing mosquitoes: < 9 hrs sunlight
 // Precipitation- diapausing mosquitoes: < 50 mm precipitation in the last 30 days
@@ -37,8 +37,8 @@ var bordersEurope = Europe.geometry().dissolve().bounds();
 var CentralAmerica = countries.filter(ee.Filter.inList("wld_rgn", ["Central America","Caribbean"]));
 var bordersCentralAmerica = CentralAmerica.geometry().dissolve().bounds();
 
-/**
- * // Pieces of Central America to export PrecipASTM and PrecipASTSD in smaller chunks
+/*
+// Pieces of Central America to export PrecipASTM and PrecipASTSD in smaller chunks
 print(CentralAmerica.aggregate_array("country_co").flatten().distinct());
 var bordersCentralAmerica1 = countries.filter(ee.Filter.inList("country_co", ["CU","RQ","VQ","VI","AC",
                                                                        "TB","NL","AV","RN","NN","SC","MH"]))
@@ -61,8 +61,7 @@ var bordersCentralAmerica9 = countries.filter(ee.Filter.inList("country_co", ["H
                                       .geometry().dissolve().bounds();
 var bordersCentralAmerica10 = countries.filter(ee.Filter.inList("country_co", ["PM","CS","NU","HO","BH"]))
                                       .geometry().dissolve().bounds();
-
-**/
+*/
 
 var SouthAmerica = countries.filter(ee.Filter.inList("wld_rgn", ["South America","South Atlantic"]));
 var bordersSouthAmerica = SouthAmerica.geometry().dissolve().bounds();

@@ -6,7 +6,7 @@ var precipitation = ee.ImageCollection("ECMWF/ERA5/DAILY");
 var EVI = ee.ImageCollection("MODIS/006/MOD13A2");
 var forestCover = ee.ImageCollection("MODIS/006/MOD44B");
 var elevation = ee.Image("USGS/GMTED2010");
-var humanPopulation = ee.ImageCollection("WorldPop/GP/100m/pop");
+var humanPopulation = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Density");
 var windVectors = ee.ImageCollection("ECMWF/ERA5/DAILY");
 var cattleDensity = ee.Image("users/tathni/Cattle_2010_Aw");
 var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017");
@@ -180,10 +180,11 @@ print(forestCoverPercent); // FC
 
 
 
-// Calculate mean annual human population density, then 20-year average
-var meanHPD = ee.ImageCollection.fromImages(years.map(function(y){
+// Calculate mean annual human population density, then average over years available for our study period
+var specialYears = ee.List([2000, 2005, 2010, 2015, 2020])
+var meanHPD = ee.ImageCollection.fromImages(specialYears.map(function(y){
   return humanPopulation.filter(ee.Filter.calendarRange(y, y, "year"))
-                        .select("population")
+                        .select("population_density")
                         .toBands()
                         .reproject("EPSG:4326", null, 1000)
                         .reduce(ee.Reducer.mean());
