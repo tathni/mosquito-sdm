@@ -84,12 +84,12 @@ predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                           rast <- raster(file)
                                           return(rast)
                                         })
-rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD")
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
 predictors_preStack <- setNames(predictors_preStack, rasterNames)
 
-predictors_yearRound <- predictors_preStack[c(1:6,11:13)] %>% stack()
-predictors_photoSeason <- predictors_preStack[c(1:6,11,7:8)] %>% stack()
-predictors_precipSeason <- predictors_preStack[c(1:6,11,9:10)] %>% stack()
+predictors_yearRound <- predictors_preStack[c(1:6,11,14,12:13)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:6,11,14,7:8)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,11,14,9:10)] %>% stack()
 
 
 
@@ -108,7 +108,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Acquire unique raster centroids and create sf object of occurrence points
   #------------------------------------------------------
-  print(paste0("[",SpeciesOfInterest_Names[i],"]: Acquiring unique raster centroids and create sf object for occ"))
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Acquiring unique raster centroids and creating sf object for occ"))
   
   occ_points <- Mosquitoes_SpeciesOfInterest %>%
     filter(species == SpeciesOfInterest_Names[[i]]) %>%
@@ -142,8 +142,18 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
     occ_activity_sf <- occ_sf
   }
   
+  
+  #------------------------------------------------------
+  # Filter occ to locations with summed rasters > 0
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Summed rasters filtering for occ"))
+  
+  occ_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], occ_activity_sf)
+  occ_summed_sf <- occ_activity_sf[which(occ_summed > 0),]
+  
   occ_sf_list <- c(occ_sf_list,
-                   list(occ_activity_sf))
+                   list(occ_summed_sf))
+  
   
   
   #------------------------------------------------------
@@ -227,7 +237,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   #------------------------------------------------------
-  # Select occ and random sample bg from weighted bias mask at (3x occ) multiplier
+  # Select occ and random sample bg without replacement from weighted bias mask at (3x occ) multiplier
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Selecting occ and random sampling bg from weighted bias mask"))
   
@@ -239,24 +249,6 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
                      size = 3*nrow(occ),
                      replace = FALSE,
                      prob = bg_df$weight),]
-  
-  
-  #------------------------------------------------------
-  # Plot occ and selected bg on ecoregion maps
-  #------------------------------------------------------
-  print(paste0("[",SpeciesOfInterest_Names[i],"]: Plotting occ and selected bg on ecoregion maps"))
-  
-  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Occ on Ecoregion.pdf")
-  pdf(save_name)
-  plot(st_geometry(ecoregions[[i]]))
-  plot(st_geometry(occ), col="blue", add=TRUE)
-  dev.off()
-  
-  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Bg on Ecoregion.pdf")
-  pdf(save_name)
-  plot(st_geometry(ecoregions[[i]]))
-  plot(st_geometry(bg), col="red", add=TRUE)
-  dev.off()
   
   
   #------------------------------------------------------
@@ -311,7 +303,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   gg_hist_mean <- ggplot(temp_mean_df, aes(x = temp_mean, fill = set)) +
     geom_histogram(alpha = 0.6, position = "identity") +
-    xlab("Temperature Mean (캜)") +
+    xlab("Temperature Mean (째C)") +
     ylab("Count") +
     theme_bw() +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
@@ -319,7 +311,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   gg_hist_sd <- ggplot(temp_sd_df, aes(x = temp_sd, fill = set)) +
     geom_histogram(alpha = 0.6, position = "identity") +
-    xlab("Temperature Standard Deviation (캜)") +
+    xlab("Temperature Standard Deviation (째C)") +
     ylab("Count") +
     theme_bw() +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
@@ -332,7 +324,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   gg_boxplot_mean <- ggplot(temp_mean_df, aes(x = set, y = temp_mean, fill = set)) +
     geom_boxplot(alpha = 0.7) +
     xlab("Set") +
-    ylab("Temperature Mean (캜)") +
+    ylab("Temperature Mean (째C)") +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
     labs(fill = "Set") +
     theme_bw() +
@@ -341,7 +333,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   gg_boxplot_sd <- ggplot(temp_sd_df, aes(x = set, y = temp_sd, fill = set)) +
     geom_boxplot(alpha = 0.7) +
     xlab("Set") +
-    ylab("Temperature Standard Deviation (캜)") +
+    ylab("Temperature Standard Deviation (째C)") +
     ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
     labs(fill = "Set") +
     theme_bw() +

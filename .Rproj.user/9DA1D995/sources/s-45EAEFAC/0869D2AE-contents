@@ -35,10 +35,10 @@ Mosquitoes_Wiebe_Raw <- read_excel("GBIF Datasets Raw/AnophelesGambiae_Wiebe2017
 
 
 #------------------------------------------------------
-# Create dataframe shell to house filter metadata by species
+# Create dataframe shell to house filter statistics by species
 #------------------------------------------------------
-filter_metadata_pre <- data.frame(matrix(ncol = 7, nrow=8))
-colnames(filter_metadata_pre) <- c("Species","Raw_Occurrences_with_Coords","Non_Fossil_BOR","Non_Unknown_BOR",
+filterStats_pre <- data.frame(matrix(ncol = 7, nrow=8))
+colnames(filterStats_pre) <- c("Species","Raw_Occurrences_with_Coords","Non_Fossil_BOR","Non_Unknown_BOR",
                                "Year_Range","Coord_Uncertainty_Reported","Coord_Uncertainty_DecPlace")
 
 
@@ -250,107 +250,107 @@ write.csv(Mosquitoes_SpeciesOfInterest, file = "GBIF_Datasets_Cleaned/Mosquitoes
 
 
 #------------------------------------------------------
-## FILTER METADATA ##
+## FILTER STATISTICS ##
 #------------------------------------------------------
 #------------------------------------------------------
 # Aedes aegypti
 #------------------------------------------------------
-filter_metadata_pre[[1]][[1]] <- "Aedes aegypti"
-filter_metadata_pre[[2]][[1]] <- nrow(soi_raw %>% filter(species == "Aedes aegypti"))
-filter_metadata_pre[[3]][[1]] <- nrow(soi_nonfossil_bor %>% filter(species == "Aedes aegypti"))
-filter_metadata_pre[[4]][[1]] <- nrow(soi_nonunknown_bor %>% filter(species == "Aedes aegypti"))
-filter_metadata_pre[[5]][[1]] <- nrow(soi_yearrange %>% filter(species == "Aedes aegypti"))
-filter_metadata_pre[[6]][[1]] <- nrow(soi_coord_reported %>% filter(species == "Aedes aegypti"))
-filter_metadata_pre[[7]][[1]] <- nrow(soi_coord_decplace %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[1]][[1]] <- "Aedes aegypti"
+filterStats_pre[[2]][[1]] <- nrow(soi_raw %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[3]][[1]] <- nrow(soi_nonfossil_bor %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[4]][[1]] <- nrow(soi_nonunknown_bor %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[5]][[1]] <- nrow(soi_yearrange %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[6]][[1]] <- nrow(soi_coord_reported %>% filter(species == "Aedes aegypti"))
+filterStats_pre[[7]][[1]] <- nrow(soi_coord_decplace %>% filter(species == "Aedes aegypti"))
 
 
 #------------------------------------------------------
 # Aedes albopictus
 #------------------------------------------------------
-filter_metadata_pre[[1]][[2]] <- "Aedes albopictus"
-filter_metadata_pre[[2]][[2]] <- nrow(soi_raw %>% filter(species == "Aedes albopictus"))
-filter_metadata_pre[[3]][[2]] <- nrow(soi_nonfossil_bor %>% filter(species == "Aedes albopictus"))
-filter_metadata_pre[[4]][[2]] <- nrow(soi_nonunknown_bor %>% filter(species == "Aedes albopictus"))
-filter_metadata_pre[[5]][[2]] <- nrow(soi_yearrange %>% filter(species == "Aedes albopictus"))
-filter_metadata_pre[[6]][[2]] <- nrow(soi_coord_reported %>% filter(species == "Aedes albopictus"))
-filter_metadata_pre[[7]][[2]] <- nrow(soi_coord_decplace %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[1]][[2]] <- "Aedes albopictus"
+filterStats_pre[[2]][[2]] <- nrow(soi_raw %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[3]][[2]] <- nrow(soi_nonfossil_bor %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[4]][[2]] <- nrow(soi_nonunknown_bor %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[5]][[2]] <- nrow(soi_yearrange %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[6]][[2]] <- nrow(soi_coord_reported %>% filter(species == "Aedes albopictus"))
+filterStats_pre[[7]][[2]] <- nrow(soi_coord_decplace %>% filter(species == "Aedes albopictus"))
 
 
 #------------------------------------------------------
 # Anopheles gambiae
 #------------------------------------------------------
-filter_metadata_pre[[1]][[3]] <- "Anopheles gambiae"
-filter_metadata_pre[[2]][[3]] <- nrow(soi_raw %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_raw)
-filter_metadata_pre[[3]][[3]] <- nrow(soi_nonfossil_bor %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_raw)
-filter_metadata_pre[[4]][[3]] <- nrow(soi_nonunknown_bor %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_raw)
-filter_metadata_pre[[5]][[3]] <- nrow(soi_yearrange %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_yearrange)
-filter_metadata_pre[[6]][[3]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_yearrange)
-filter_metadata_pre[[7]][[3]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_coord_decplace)
+filterStats_pre[[1]][[3]] <- "Anopheles gambiae"
+filterStats_pre[[2]][[3]] <- nrow(soi_raw %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_raw)
+filterStats_pre[[3]][[3]] <- nrow(soi_nonfossil_bor %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_raw)
+filterStats_pre[[4]][[3]] <- nrow(soi_nonunknown_bor %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_raw)
+filterStats_pre[[5]][[3]] <- nrow(soi_yearrange %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_yearrange)
+filterStats_pre[[6]][[3]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_yearrange)
+filterStats_pre[[7]][[3]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles gambiae")) + nrow(wiebe_coord_decplace)
 
 
 #------------------------------------------------------
 # Anopheles stephensi
 #------------------------------------------------------
-filter_metadata_pre[[1]][[4]] <- "Anopheles stephensi"
-filter_metadata_pre[[2]][[4]] <- nrow(soi_raw %>% filter(species == "Anopheles stephensi")) + nrow(sinka_raw)
-filter_metadata_pre[[3]][[4]] <- nrow(soi_nonfossil_bor %>% filter(species == "Anopheles stephensi")) + nrow(sinka_nonfossil_bor)
-filter_metadata_pre[[4]][[4]] <- nrow(soi_nonunknown_bor %>% filter(species == "Anopheles stephensi")) + nrow(sinka_nonunknown_bor)
-filter_metadata_pre[[5]][[4]] <- nrow(soi_yearrange %>% filter(species == "Anopheles stephensi")) + nrow(sinka_yearrange)
-filter_metadata_pre[[6]][[4]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_reported)
-filter_metadata_pre[[7]][[4]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_decplace)
+filterStats_pre[[1]][[4]] <- "Anopheles stephensi"
+filterStats_pre[[2]][[4]] <- nrow(soi_raw %>% filter(species == "Anopheles stephensi")) + nrow(sinka_raw)
+filterStats_pre[[3]][[4]] <- nrow(soi_nonfossil_bor %>% filter(species == "Anopheles stephensi")) + nrow(sinka_nonfossil_bor)
+filterStats_pre[[4]][[4]] <- nrow(soi_nonunknown_bor %>% filter(species == "Anopheles stephensi")) + nrow(sinka_nonunknown_bor)
+filterStats_pre[[5]][[4]] <- nrow(soi_yearrange %>% filter(species == "Anopheles stephensi")) + nrow(sinka_yearrange)
+filterStats_pre[[6]][[4]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_reported)
+filterStats_pre[[7]][[4]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_decplace)
 
 
 #------------------------------------------------------
 # Culex annulirostris
 #------------------------------------------------------
-filter_metadata_pre[[1]][[5]] <- "Culex annulirostris"
-filter_metadata_pre[[2]][[5]] <- nrow(soi_raw %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_raw)
-filter_metadata_pre[[3]][[5]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_nonfossil_bor)
-filter_metadata_pre[[4]][[5]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_nonunknown_bor)
-filter_metadata_pre[[5]][[5]] <- nrow(soi_yearrange %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_yearrange)
-filter_metadata_pre[[6]][[5]] <- nrow(soi_coord_reported %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_coord_reported)
-filter_metadata_pre[[7]][[5]] <- nrow(soi_coord_decplace %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_coord_decplace)
+filterStats_pre[[1]][[5]] <- "Culex annulirostris"
+filterStats_pre[[2]][[5]] <- nrow(soi_raw %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_raw)
+filterStats_pre[[3]][[5]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_nonfossil_bor)
+filterStats_pre[[4]][[5]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_nonunknown_bor)
+filterStats_pre[[5]][[5]] <- nrow(soi_yearrange %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_yearrange)
+filterStats_pre[[6]][[5]] <- nrow(soi_coord_reported %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_coord_reported)
+filterStats_pre[[7]][[5]] <- nrow(soi_coord_decplace %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_coord_decplace)
 
 
 #------------------------------------------------------
 # Culex pipiens
 #------------------------------------------------------
-filter_metadata_pre[[1]][[6]] <- "Culex pipiens"
-filter_metadata_pre[[2]][[6]] <- nrow(soi_raw %>% filter(species == "Culex pipiens"))
-filter_metadata_pre[[3]][[6]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex pipiens"))
-filter_metadata_pre[[4]][[6]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex pipiens"))
-filter_metadata_pre[[5]][[6]] <- nrow(soi_yearrange %>% filter(species == "Culex pipiens"))
-filter_metadata_pre[[6]][[6]] <- nrow(soi_coord_reported %>% filter(species == "Culex pipiens"))
-filter_metadata_pre[[7]][[6]] <- nrow(soi_coord_decplace %>% filter(species == "Culex pipiens"))
+filterStats_pre[[1]][[6]] <- "Culex pipiens"
+filterStats_pre[[2]][[6]] <- nrow(soi_raw %>% filter(species == "Culex pipiens"))
+filterStats_pre[[3]][[6]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex pipiens"))
+filterStats_pre[[4]][[6]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex pipiens"))
+filterStats_pre[[5]][[6]] <- nrow(soi_yearrange %>% filter(species == "Culex pipiens"))
+filterStats_pre[[6]][[6]] <- nrow(soi_coord_reported %>% filter(species == "Culex pipiens"))
+filterStats_pre[[7]][[6]] <- nrow(soi_coord_decplace %>% filter(species == "Culex pipiens"))
 
 
 #------------------------------------------------------
 # Culex quinquefasciatus
 #------------------------------------------------------
-filter_metadata_pre[[1]][[7]] <- "Culex quinquefasciatus"
-filter_metadata_pre[[2]][[7]] <- nrow(soi_raw %>% filter(species == "Culex quinquefasciatus"))
-filter_metadata_pre[[3]][[7]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex quinquefasciatus"))
-filter_metadata_pre[[4]][[7]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex quinquefasciatus"))
-filter_metadata_pre[[5]][[7]] <- nrow(soi_yearrange %>% filter(species == "Culex quinquefasciatus"))
-filter_metadata_pre[[6]][[7]] <- nrow(soi_coord_reported %>% filter(species == "Culex quinquefasciatus"))
-filter_metadata_pre[[7]][[7]] <- nrow(soi_coord_decplace %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[1]][[7]] <- "Culex quinquefasciatus"
+filterStats_pre[[2]][[7]] <- nrow(soi_raw %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[3]][[7]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[4]][[7]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[5]][[7]] <- nrow(soi_yearrange %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[6]][[7]] <- nrow(soi_coord_reported %>% filter(species == "Culex quinquefasciatus"))
+filterStats_pre[[7]][[7]] <- nrow(soi_coord_decplace %>% filter(species == "Culex quinquefasciatus"))
 
 
 #------------------------------------------------------
 # Culex tarsalis
 #------------------------------------------------------
-filter_metadata_pre[[1]][[8]] <- "Culex tarsalis"
-filter_metadata_pre[[2]][[8]] <- nrow(soi_raw %>% filter(species == "Culex tarsalis"))
-filter_metadata_pre[[3]][[8]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex tarsalis"))
-filter_metadata_pre[[4]][[8]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex tarsalis"))
-filter_metadata_pre[[5]][[8]] <- nrow(soi_yearrange %>% filter(species == "Culex tarsalis"))
-filter_metadata_pre[[6]][[8]] <- nrow(soi_coord_reported %>% filter(species == "Culex tarsalis"))
-filter_metadata_pre[[7]][[8]] <- nrow(soi_coord_decplace %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[1]][[8]] <- "Culex tarsalis"
+filterStats_pre[[2]][[8]] <- nrow(soi_raw %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[3]][[8]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[4]][[8]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[5]][[8]] <- nrow(soi_yearrange %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[6]][[8]] <- nrow(soi_coord_reported %>% filter(species == "Culex tarsalis"))
+filterStats_pre[[7]][[8]] <- nrow(soi_coord_decplace %>% filter(species == "Culex tarsalis"))
 
 
 #------------------------------------------------------
-# Save the data file, to be used in raster data extraction script to complete the filter metadata
+# Save the data file
 #------------------------------------------------------
-saveRDS(filter_metadata_pre, "filter_metadata_pre.RDS")
+saveRDS(filterStats_pre, "filterStats_pre.RDS")
 
 

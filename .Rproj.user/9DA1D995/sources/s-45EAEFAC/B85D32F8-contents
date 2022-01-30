@@ -12,6 +12,482 @@ source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
 ## DATA LOAD-IN ##
 #------------------------------------------------------
 #------------------------------------------------------
+# Load in occurrence data
+#------------------------------------------------------
+Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
+                                         encoding = "UTF-8", stringsAsFactors = FALSE)
+
+
+#------------------------------------------------------
+# Load in background bias masks
+#------------------------------------------------------
+bias_masks <- alply(list.files("Background Bias Masks",
+                               pattern = ".RDS",
+                               full.names = TRUE), 1, function(file){
+                                 print(file)
+                                 df <- readRDS(file)
+                                 return(df)
+                               }) %>%
+  setNames(c("An_Gambiae","An_Stephensi","Cx_Annuli","Main"))
+bias_masks_index <- c(4,4,1,2,3,4,4,4)
+
+
+#------------------------------------------------------
+# Load in ecoregion shapefiles
+#------------------------------------------------------
+ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
+                               pattern = ".RDS",
+                               full.names = TRUE), 1, function(file){
+                                 print(file)
+                                 shapefile <- readRDS(file)
+                                 return(shapefile)
+                               }) %>%
+  setNames(c("Ae_Aegypti","Ae_Albopictus","An_Gambiae","An_Stephensi",
+             "Cx_Annuli","Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
+
+
+#------------------------------------------------------
+# Load in activity season length rasters
+#------------------------------------------------------
+activity_lengths <- alply(list.files("Activity Season Lengths",
+                                     pattern = ".tif",
+                                     full.names = TRUE), 1, function(file){
+                                       print(file)
+                                       rast <- raster(file)
+                                       return(rast)
+                                     }) %>%
+  setNames(c("Photoperiod","Precipitation"))
+activity_lengths_index <- c(NA,1,2,NA,NA,1,NA,1)
+
+
+#------------------------------------------------------
+# Load in summed environmental predictors
+#------------------------------------------------------
+predictor_sums <- alply(list.files("Environmental Predictors Summed",
+                                   pattern = ".tif",
+                                   full.names = TRUE), 1, function(file){
+                                     print(file)
+                                     rast <- raster(file)
+                                     return(rast)
+                                   }) %>%
+  setNames(c("Photoperiod","Precipitation","YearRound"))
+predictor_sums_index <- c(3,1,2,3,3,1,3,1)
+
+
+#------------------------------------------------------
+# Load in environmental predictors and stack by activity season
+#------------------------------------------------------
+predictors_preStack <- alply(list.files("Environmental Predictors Merged",
+                                        pattern = ".tif",
+                                        full.names = TRUE), 1, function(file){
+                                          print(file)
+                                          rast <- raster(file)
+                                          return(rast)
+                                        })
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
+predictors_preStack <- setNames(predictors_preStack, rasterNames)
+
+predictors_yearRound <- predictors_preStack[c(1:6,11,14,12:13)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:6,11,14,7:8)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,11,14,9:10)] %>% stack()
+
+
+#------------------------------------------------------
+# Create lists and containers to house filter metadata
+#------------------------------------------------------
+filter_metadata_pre <- readRDS("filter_metadata_pre.RDS")
+filter_metadata_shell <- data.frame(matrix(ncol = 4, nrow=8))
+colnames(filter_metadata_shell) <- c("Activity_Season","Unique_NonNA_Cells","Activity_Season_Cells","Raster_Sum_NonNA_Cells")
+filter_metadata <- cbind(filter_metadata_pre, filter_metadata_shell) %>%
+  .[,c(1,8,2:7,9:11)]
+
+
+
+#------------------------------------------------------
+## STEP 1: PREPARE OCC SF OBJECTS AND BG MASK BY SPECIES ##
+#------------------------------------------------------
+occ_sf_list <- c()
+bg_mask_list <- c()
+
+#------------------------------------------------------
+# Loop through by species
+#------------------------------------------------------
+for(i in 1:length(SpeciesOfInterest_Names)) {
+  print(paste0("-- Step 1: Preparing occ sf objects and bg mask for ", SpeciesOfInterest_Names[i]," --"))
+  tic <- Sys.time()
+  
+  #------------------------------------------------------
+  ## OCCURRENCES ##
+  #------------------------------------------------------
+  #------------------------------------------------------
+  # Acquire unique raster centroids and create sf object of occurrence points
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Acquiring unique raster centroids and creating sf object for occ"))
+  
+  occ_points <- Mosquitoes_SpeciesOfInterest %>%
+    filter(species == SpeciesOfInterest_Names[[i]]) %>%
+    dplyr::select(c(decimalLongitude, decimalLatitude))
+  
+  rast <- predictors_preStack[[1]] # Choose any generic raster to acquire cells and centroids from
+  
+  occ_longlat <- cellFromXY(rast, occ_points) %>% as.data.frame() %>%
+    setNames("cell") %>% unique() %>%
+    mutate(longitude = xFromCell(rast, cell),  # Acquire longitude (x) and latitude (y) from cell centroids
+           latitude = yFromCell(rast, cell)) %>%
+    dplyr::select(-cell) %>% # Cell number is now obsolete if working from (x,y) as an sf object
+    filter(!is.na(longitude) & !is.na(latitude)) # Remove the NA locations
+  
+  occ_sf <- st_as_sf(occ_longlat, coords = c("longitude","latitude"),
+                     crs = 4326, agr = "constant")
+  
+  unique_cells <- nrow(occ_sf) # Acquire count for filter metadata
+  
+  
+  #------------------------------------------------------
+  # Filter occ to locations with activity season length > 0
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Activity season length filtering for occ"))
+  
+  if(SpeciesOfInterest_Names[[i]] %in% c("Aedes albopictus",
+                                         "Anopheles gambiae",
+                                         "Culex pipiens",
+                                         "Culex tarsalis")) {
+    occ_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[[i]])]], occ_sf)
+    occ_activity_sf <- occ_sf[which(occ_activity_length > 0),]
+  } else {
+    occ_activity_sf <- occ_sf
+  }
+  
+  occ_sf_list <- c(occ_sf_list,
+                   list(occ_activity_sf))
+  
+  activity_season_cells <- nrow(occ_activity_sf) # Acquire count for filter metadata
+  
+  
+  #------------------------------------------------------
+  # Filter occ to locations with summed rasters > 0
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Summed rasters filtering for occ"))
+  
+  occ_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], occ_activity_sf)
+  occ_summed_sf <- occ_activity_sf[which(occ_summed > 0),]
+  
+  occ_sf_list <- c(occ_sf_list,
+                   list(occ_summed_sf))
+  
+  raster_sum_cells <- nrow(occ_summed_sf) # Acquire count for filter metadata
+  
+  
+  #------------------------------------------------------
+  # Record the filter metadata for occurrences
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Recording the filter metadata for occ"))
+  
+  filter_metadata[[2]][[i]] <- ActivitySeason_Type[[i]]
+  filter_metadata[[9]][[i]] <- unique_cells
+  filter_metadata[[10]][[i]] <- activity_season_cells
+  filter_metadata[[11]][[i]] <- raster_sum_cells
+  
+  
+  
+  #------------------------------------------------------
+  ## BACKGROUND MASK ##
+  #------------------------------------------------------
+  #------------------------------------------------------
+  # Filter bg mask to locations within ecoregion
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Ecoregion filtering for bg mask"))
+  
+  bg_mask <- bias_masks[[(bias_masks_index[[i]])]]
+  
+  sf::sf_use_s2(FALSE)
+  bg_sf <- st_as_sf(bg_mask, coords = c("longitude","latitude"),
+                    crs = 4326, agr = "constant")
+  
+  bg_eco_intersect <- st_intersects(bg_sf, ecoregions[[i]])
+  bg_eco_inds <- purrr::map_dbl(bg_eco_intersect, function(x) length(x)) %>% 
+    magrittr::is_greater_than(0) %>% which()
+  bg_eco_sf <- bg_sf[bg_eco_inds,]
+  
+  
+  #------------------------------------------------------
+  # Filter bg mask to locations with activity season length > 0
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Activity season length filtering for bg mask"))
+  
+  if(SpeciesOfInterest_Names[[i]] %in% c("Aedes albopictus",
+                                         "Anopheles gambiae",
+                                         "Culex pipiens",
+                                         "Culex tarsalis")) {
+    bg_activity_length <- raster::extract(activity_lengths[[(activity_lengths_index[i])]], bg_eco_sf)
+    bg_activity_sf <- bg_eco_sf[which(bg_activity_length > 0),]
+  } else {
+    bg_activity_sf <- bg_eco_sf
+  }
+  
+  
+  #------------------------------------------------------
+  # Filter bg mask to locations with summed rasters > 0
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Summed rasters filtering for bg mask"))
+  
+  bg_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], bg_activity_sf)
+  bg_summed_sf <- bg_activity_sf[which(bg_summed > 0),]
+  bg_mask_list <- c(bg_mask_list,
+                    list(bg_summed_sf))
+  
+  toc <- Sys.time()
+  toc - tic
+  
+}
+
+
+
+#------------------------------------------------------
+## STEP 2: EXTRACT RASTER VALUES BY SPECIES ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Create lists and containers to house train-eval metadata, extracted raster covariate data, and species maps
+#------------------------------------------------------
+traineval_metadata <- data.frame(matrix(ncol = 5, nrow=8))
+colnames(traineval_metadata) <- c("Species","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg")
+
+sdmData <- list()
+species_maps <- c()
+
+
+#------------------------------------------------------
+# Loop through by species
+#------------------------------------------------------
+for(i in 1:length(SpeciesOfInterest_Names)) {
+  print(paste0("-- Step 2: Extracting raster values for ", SpeciesOfInterest_Names[i]," --"))
+  tic <- Sys.time()
+  
+  #------------------------------------------------------
+  # Set predictor stack according to specific activity season setting
+  #------------------------------------------------------
+  if(SpeciesOfInterest_Names[i] == "Aedes aegypti" |
+     SpeciesOfInterest_Names[i] == "Anopheles stephensi" |
+     SpeciesOfInterest_Names[i] == "Culex annulirostris" |
+     SpeciesOfInterest_Names[i] == "Culex quinquefasciatus") {
+    predictors <- predictors_yearRound }
+  
+  if(SpeciesOfInterest_Names[i] == "Aedes albopictus" |
+     SpeciesOfInterest_Names[i] == "Culex pipiens" |
+     SpeciesOfInterest_Names[i] == "Culex tarsalis") {
+    predictors <- predictors_photoSeason }
+  
+  if(SpeciesOfInterest_Names[i] == "Anopheles gambiae") {
+    predictors <- predictors_precipSeason }
+  
+  
+  #------------------------------------------------------
+  # Select occ and random sample bg without replacement from weighted bias mask at (2x occ) multiplier
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Selecting occ and random sampling bg from weighted bias mask"))
+  set.seed(seedNum)
+  
+  occ <- occ_sf_list[[i]]
+  
+  bg_df <- bg_mask_list[[i]] %>%
+    mutate(weight = count/sum(count))
+  bg <- bg_df[sample(nrow(bg_df),
+                     size = 2*nrow(occ),
+                     replace = FALSE,
+                     prob = bg_df$weight),]
+  
+  
+  #------------------------------------------------------
+  # Plot occ and selected bg on ecoregion maps
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Plotting occ and selected bg on ecoregion maps"))
+  
+  world <- st_as_sf(wrld_simpl[wrld_simpl@data$UN!="10",]) %>% st_set_crs(my_crs)
+  
+  species_plot <- ggplot() + 
+    geom_sf(data = ecoregions[[i]], color = "black", fill = "lightgrey", alpha = 0.5) +
+    geom_sf(data = occ, aes(color = "Occurrence"), size = 2, alpha = 0.7, show.legend = "point") + 
+    geom_sf(data = bg, aes(color = "Background"), size = 2, alpha = 0.4, show.legend = "point") + 
+    scale_color_manual(name = "Centroid",
+                       values = c("Occurrence" = "#b80700", "Background" = "#003f91")) +
+    theme_bw() +
+    theme(legend.position="bottom") +
+    ggtitle(SpeciesOfInterest_Names[i])
+  
+  species_maps <- c(species_maps, species_plot)
+  
+  
+  #------------------------------------------------------
+  # Extract raster covariate values for occ and bg
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Extracting raster covariate values for occ and bg"))
+  
+  predictors_occ <- data.frame(raster::extract(predictors, occ)) %>%
+    cbind(c(rep(SpeciesOfInterest_Names[i], nrow(.))),
+          st_coordinates(occ),
+          c(rep(ActivitySeason_Type[i], nrow(.))),
+          c(rep("Occurrence", nrow(.))))
+  
+  predictors_bg <- data.frame(raster::extract(predictors, bg)) %>%
+    cbind(c(rep(SpeciesOfInterest_Names[i], nrow(.))),
+          st_coordinates(bg),
+          c(rep(ActivitySeason_Type[i], nrow(.))),
+          c(rep("Background", nrow(.))))
+  
+  
+  #------------------------------------------------------
+  # Split data 80% for model training, and 20% for evaluation
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Splitting data into train-evaluation sets at 80%/20%"))
+  set.seed(seedNum)
+  
+  predictors_occ$Data_Split <- NA
+  predictors_occ$Data_Split[sample(nrow(predictors_occ),
+                                   size = 0.8*nrow(predictors_occ),
+                                   replace = FALSE)] <- "Training"
+  predictors_occ$Data_Split[is.na(predictors_occ$Data_Split)] <- "Evaluation"
+  
+  predictors_bg$Data_Split <- NA
+  predictors_bg$Data_Split[sample(nrow(predictors_bg),
+                                  size = 0.8*nrow(predictors_bg),
+                                  replace = FALSE)] <- "Training"
+  predictors_bg$Data_Split[is.na(predictors_bg$Data_Split)] <- "Evaluation"
+  
+  
+  #------------------------------------------------------
+  # Merge raster covariate dataframes from occ and bg
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Merging raster covariate dataframes from occ and bg"))
+  
+  colnames(predictors_occ)[10] <- "Species"
+  colnames(predictors_occ)[13] <- "Activity_Season"
+  colnames(predictors_occ)[14] <- "Occ_or_Bg"
+  colnames(predictors_bg)[10] <- "Species"
+  colnames(predictors_bg)[13] <- "Activity_Season"
+  colnames(predictors_bg)[14] <- "Occ_or_Bg"
+  
+  predictors_all <- rbind(predictors_occ, predictors_bg)
+  
+  sdmData <- c(sdmData, predictors_all)
+ 
+  
+  #------------------------------------------------------
+  # Record the train-eval metadata for occ and bg
+  #------------------------------------------------------
+  print(paste0("[",SpeciesOfInterest_Names[i],"]: Recording the train-eval metadata for occ and bg"))
+  
+  traineval_metadata[[1]][[i]] <- SpeciesOfInterest_Names[i]
+  traineval_metadata[[2]][[i]] <- ActivitySeason_Type[[i]]
+  traineval_metadata[[3]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Training",
+                                                                 Occ_or_Bg == "Occurrence"))
+  traineval_metadata[[4]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Training",
+                                                                 Occ_or_Bg == "Background"))
+  traineval_metadata[[5]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Evaluation",
+                                                                 Occ_or_Bg == "Occurrence"))
+  traineval_metadata[[6]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Evaluation",
+                                                                 Occ_or_Bg == "Occurrence"))
+  
+  toc <- Sys.time()
+  toc - tic
+}
+
+
+
+#------------------------------------------------------
+## STEP 3: FORMAT AND EXPORT DATA/FIGURES ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Format raster covariate dataframes
+#------------------------------------------------------
+for(i in 1:length(sdmData)) {
+  print(paste0("-- Step 3: Formatting raster covariate data for ", SpeciesOfInterest_Names[i]," --"))
+  predictors_all <- sdmData[[i]]
+  
+  if(SpeciesOfInterest_Names[i] == "Aedes aegypti" |
+     SpeciesOfInterest_Names[i] == "Anopheles stephensi" |
+     SpeciesOfInterest_Names[i] == "Culex annulirostris" |
+     SpeciesOfInterest_Names[i] == "Culex quinquefasciatus") {
+    predictors_all %<>% .[,c(??)]
+  }
+  
+  if(SpeciesOfInterest_Names[i] == "Aedes albopictus" |
+     SpeciesOfInterest_Names[i] == "Culex pipiens" |
+     SpeciesOfInterest_Names[i] == "Culex tarsalis") {
+    predictors_all %<>% .[,c(??)]
+  }
+  
+  if(SpeciesOfInterest_Names[i] == "Anopheles gambiae") {
+    predictors_all %<>% .[,c(??)]
+  }
+  
+  ## need to re-name photo/precip/yr column names by activity ssn, re-order column names, and merge all species together
+  ## need to put colnames(predictors_all) <- c("Centroid_Longitude","Centroid_Latitude")
+  
+  
+  #------------------------------------------------------
+  # Rename the columns of the dataframe and merge before exporting the .csv
+  # {PhotoASTM, PrecipASTM, and TAM} = TAM in the .csv
+  # {PhotoASTSD, PrecipASTSD, and TASD} = TASD in the .csv
+  #------------------------------------------------------
+  colnames(df_yearRound) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
+                              "EVISD","FC","HPD","PDQ","PWQ","TAM","TASD")
+  
+  colnames(df_photoSeason) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
+                                "EVISD","FC","HPD","PDQ","TAM","TASD","PWQ")
+  df_photoSeason <- df_photoSeason[,c(1:11,14,12:13)]
+  
+  colnames(df_precipSeason) <- c("Species","Longitude","Latitude","DataSplit","Occ1_or_Bg0","ELEV","EVIM",
+                                 "EVISD","FC","HPD","PDQ","TAM","TASD","PWQ")
+  df_precipSeason <- df_precipSeason[,c(1:11,14,12:13)]
+  
+  
+  df_final <- rbind(df_yearRound, df_photoSeason, df_precipSeason)
+}
+
+
+#------------------------------------------------------
+# Merge all species' raster covariate data
+#------------------------------------------------------
+# ??
+
+
+#------------------------------------------------------
+# Save species occurrence and bg on ecoregion maps
+#------------------------------------------------------
+for(i in 1:length(species_maps)) {
+  species_plot <- species_maps[[i]]
+  save_name <- paste0("! Figures/Species Occurrence Maps/",SpeciesOfInterest_Names[[i]]," - Occ and Bg on Ecoregions.pdf")
+  pdf(save_name)
+  species_plot
+  dev.off()
+}
+
+
+#------------------------------------------------------
+# Export .csv files
+#------------------------------------------------------
+# ??
+write.csv(traineval_metadata, file = "Train Eval Metadata by Species.csv", row.names=FALSE)
+write.csv(filter_metadata, file = "Filter Metadata by Species.csv", row.names=FALSE)
+write.csv(df_final, file = "SDM Data.csv", row.names=FALSE)
+
+
+
+
+
+
+
+
+
+
+
+# -- 
+
+
+#------------------------------------------------------
+## DATA LOAD-IN ##
+#------------------------------------------------------
+#------------------------------------------------------
 # Load in mosquito occurrences
 #------------------------------------------------------
 print(paste0("Loading in mosquito occurrence data"))
@@ -111,11 +587,11 @@ evaluationList <- c("AedesAegypti_EvalOcc",
                      "CulexQuinquefasciatus_EvalOcc",
                      "CulexTarsalis_EvalOcc")
 
-trainevalStats <- data.frame(matrix(ncol = 6, nrow=8))
-colnames(trainevalStats) <- c("Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg")
+traineval_metadata <- data.frame(matrix(ncol = 6, nrow=8))
+colnames(traineval_metadata) <- c("Species","Activity_Season_Restriction","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg")
 
-filterStats <- data.frame(matrix(ncol = 7, nrow=8))
-colnames(filterStats) <- c("Species","Activity_Season_Restriction","Cleaned_Points","Landmass_Points","Activity_Season_Points",
+filter_metadata <- data.frame(matrix(ncol = 7, nrow=8))
+colnames(filter_metadata) <- c("Species","Activity_Season_Restriction","Cleaned_Points","Landmass_Points","Activity_Season_Points",
                            "Sampling_Range_Points","Unique_Points_Final")
 
 mosq_bias_list <- list()
@@ -413,21 +889,21 @@ for (i in 1:length(SpeciesOfInterest_Names)) {
   # Save summary statistics in the pre-created dataframe
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Saving summary statistics"))
-  trainevalStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
-  trainevalStats[[2]][[i]] <- ActivitySeason_Type[[i]]
-  trainevalStats[[3]][[i]] <- nrow(train_occ)
-  trainevalStats[[4]][[i]] <- nrow(train_bg)
-  trainevalStats[[5]][[i]] <- nrow(eval_occ)
-  trainevalStats[[6]][[i]] <- nrow(eval_bg)
+  traineval_metadata[[1]][[i]] <- SpeciesOfInterest_Names[i]
+  traineval_metadata[[2]][[i]] <- ActivitySeason_Type[[i]]
+  traineval_metadata[[3]][[i]] <- nrow(train_occ)
+  traineval_metadata[[4]][[i]] <- nrow(train_bg)
+  traineval_metadata[[5]][[i]] <- nrow(eval_occ)
+  traineval_metadata[[6]][[i]] <- nrow(eval_bg)
   
   
-  filterStats[[1]][[i]] <- SpeciesOfInterest_Names[i]
-  filterStats[[2]][[i]] <- ActivitySeason_Type[[i]]
-  filterStats[[3]][[i]] <- cleaned_points
-  filterStats[[4]][[i]] <- landmass_points
-  filterStats[[5]][[i]] <- activity_season_points
-  filterStats[[6]][[i]] <- sampling_range_points
-  filterStats[[7]][[i]] <- unique_points
+  filter_metadata[[1]][[i]] <- SpeciesOfInterest_Names[i]
+  filter_metadata[[2]][[i]] <- ActivitySeason_Type[[i]]
+  filter_metadata[[3]][[i]] <- cleaned_points
+  filter_metadata[[4]][[i]] <- landmass_points
+  filter_metadata[[5]][[i]] <- activity_season_points
+  filter_metadata[[6]][[i]] <- sampling_range_points
+  filter_metadata[[7]][[i]] <- unique_points
 
   
   #------------------------------------------------------
@@ -498,22 +974,19 @@ df_final <- rbind(df_yearRound, df_photoSeason, df_precipSeason)
 
 
 #------------------------------------------------------
-# Merge filterStats with filterStats_pre from the data cleaning script
+# Merge filter_metadata with filter_metadata_pre from the data cleaning script
 #------------------------------------------------------
-filterStats_pre <- readRDS("filterStats_pre.RDS")
-filterStats %<>% cbind(filterStats_pre[2:7]) %>%
+filter_metadata_pre <- readRDS("filter_metadata_pre.RDS")
+filter_metadata %<>% cbind(filter_metadata_pre[2:7]) %>%
   .[,c(1:2,8:13,3:7)]
 
 
 #------------------------------------------------------
 # Output .csv files
 #------------------------------------------------------
-write.csv(trainevalStats, file = "Train Eval Statistics by Species.csv", row.names=FALSE)
-write.csv(filterStats, file = "Filter Statistics by Species.csv", row.names=FALSE)
+write.csv(traineval_metadata, file = "Train Eval Metadata by Species.csv", row.names=FALSE)
+write.csv(filter_metadata, file = "Filter Metadata by Species.csv", row.names=FALSE)
 write.csv(df_final, file = "SDM Data.csv", row.names=FALSE)
-write.csv(df_yearRound, file = "SDM Data - Year Round.csv", row.names = FALSE)
-write.csv(df_photoSeason, file = "SDM Data - Photoperiod Activity Season.csv", row.names = FALSE)
-write.csv(df_precipSeason, file = "SDM Data - Precipitation Activity Season.csv", row.names = FALSE)
 
 
 
