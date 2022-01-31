@@ -5,10 +5,9 @@
 var precipitation = ee.ImageCollection("ECMWF/ERA5/DAILY");
 var EVI = ee.ImageCollection("MODIS/006/MOD13A2");
 var forestCover = ee.ImageCollection("MODIS/006/MOD44B");
-var elevation = ee.Image("USGS/GMTED2010");
 var humanPopulation = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Density");
-var windVectors = ee.ImageCollection("ECMWF/ERA5/DAILY");
 var cattleDensity = ee.Image("users/tathni/Cattle_2010_Aw");
+var windSpeed = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE");
 var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017");
 
 
@@ -193,40 +192,24 @@ print(meanHPD); // HPD
 
 
 
-// Calculate elevation
-var elevationBand = elevation.select("be75")
-                             .reproject("EPSG:4326", null, 1000)
-                             .clip(countries);
-print(elevationBand); // ELEV
+// Calculate cattle density
+var cattleDensityBand = cattleDensity.select("b1")
+                                     .reproject("EPSG:4326", null, 1000)
+                                     .clip(countries);
+print(cattleDensityBand); // CD
 
 
 
 // Calculate mean annual wind speed, then 20-year average
-var windSpeed = windVectors.map(function(image){
-  var wind_10m = image.expression(
-    "sqrt(u**2 + v**2)", {
-      "u": image.select("u_component_of_wind_10m"),
-      "v": image.select("v_component_of_wind_10m")
-  }).rename("wind_10m");
-  return image.addBands(wind_10m);
-});
-
 var meanWindSpeed = ee.ImageCollection.fromImages(years.map(function(y){
   return windSpeed.filter(ee.Filter.calendarRange(y, y, "year"))
-                        .select("wind_10m")
+                        .select("vs")
                         .toBands()
                         .reproject("EPSG:4326", null, 1000)
                         .reduce(ee.Reducer.mean());
 })).toBands().reduce(ee.Reducer.mean()).clip(countries);
 print(meanWindSpeed); // WS
 
-
-
-// Calculate cattle density
-var cattleDensityBand = cattleDensity.select("b1")
-                                     .reproject("EPSG:4326", null, 1000)
-                                     .clip(countries);
-print(cattleDensityBand); // CD
 
 
 
@@ -305,14 +288,14 @@ exportImage(meanHPD, bordersSouthAmerica, "HPD_SouthAmerica");
 exportImage(meanHPD, bordersOceania, "HPD_Oceania");
 
 
-// Elevation, image export
-exportImage(elevationBand, bordersAfrica, "Elevation_Africa");
-exportImage(elevationBand, bordersAsia, "Elevation_Asia");
-exportImage(elevationBand, bordersEurope, "Elevation_Europe");
-exportImage(elevationBand, bordersNorthAmerica, "Elevation_NorthAmerica");
-exportImage(elevationBand, bordersCentralAmerica, "Elevation_CentralAmerica");
-exportImage(elevationBand, bordersSouthAmerica, "Elevation_SouthAmerica");
-exportImage(elevationBand, bordersOceania, "Elevation_Oceania");
+// Cattle density, image export
+exportImage(cattleDensityBand, bordersAfrica, "CD_Africa");
+exportImage(cattleDensityBand, bordersAsia, "CD_Asia");
+exportImage(cattleDensityBand, bordersEurope, "CD_Europe");
+exportImage(cattleDensityBand, bordersNorthAmerica, "CD_NorthAmerica");
+exportImage(cattleDensityBand, bordersCentralAmerica, "CD_CentralAmerica");
+exportImage(cattleDensityBand, bordersSouthAmerica, "CD_SouthAmerica");
+exportImage(cattleDensityBand, bordersOceania, "CD_Oceania");
 
 
 // Wind speed, image export
@@ -323,13 +306,3 @@ exportImage(meanWindSpeed, bordersNorthAmerica, "WS_NorthAmerica");
 exportImage(meanWindSpeed, bordersCentralAmerica, "WS_CentralAmerica");
 exportImage(meanWindSpeed, bordersSouthAmerica, "WS_SouthAmerica");
 exportImage(meanWindSpeed, bordersOceania, "WS_Oceania");
-
-
-// Cattle density, image export
-exportImage(cattleDensityBand, bordersAfrica, "CD_Africa");
-exportImage(cattleDensityBand, bordersAsia, "CD_Asia");
-exportImage(cattleDensityBand, bordersEurope, "CD_Europe");
-exportImage(cattleDensityBand, bordersNorthAmerica, "CD_NorthAmerica");
-exportImage(cattleDensityBand, bordersCentralAmerica, "CD_CentralAmerica");
-exportImage(cattleDensityBand, bordersSouthAmerica, "CD_SouthAmerica");
-exportImage(cattleDensityBand, bordersOceania, "CD_Oceania");

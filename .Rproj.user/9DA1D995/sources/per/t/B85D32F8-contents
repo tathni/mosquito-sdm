@@ -359,12 +359,12 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Merging raster covariate dataframes from occ and bg"))
   
-  colnames(predictors_occ)[10] <- "Species"
-  colnames(predictors_occ)[13] <- "Activity_Season"
-  colnames(predictors_occ)[14] <- "Occ_or_Bg"
-  colnames(predictors_bg)[10] <- "Species"
-  colnames(predictors_bg)[13] <- "Activity_Season"
-  colnames(predictors_bg)[14] <- "Occ_or_Bg"
+  colnames(predictors_occ)[11] <- "Species"
+  colnames(predictors_occ)[14] <- "Activity_Season"
+  colnames(predictors_occ)[15] <- "Occ_or_Bg"
+  colnames(predictors_bg)[11] <- "Species"
+  colnames(predictors_bg)[14] <- "Activity_Season"
+  colnames(predictors_bg)[15] <- "Occ_or_Bg"
   
   predictors_all <- rbind(predictors_occ, predictors_bg)
   
@@ -407,6 +407,7 @@ for(i in 1:length(sdmData)) {
      SpeciesOfInterest_Names[i] == "Anopheles stephensi" |
      SpeciesOfInterest_Names[i] == "Culex annulirostris" |
      SpeciesOfInterest_Names[i] == "Culex quinquefasciatus") {
+    ## ??
     predictors_all %<>% .[,c(??)]
   }
   

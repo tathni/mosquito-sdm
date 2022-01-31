@@ -8,7 +8,7 @@
     "dirty": false,
     "created": 1643522511402.0,
     "source_on_save": false,
-    "relative_order": 10,
+    "relative_order": 12,
     "properties": {
         "expression": "filterStats_pre",
         "caption": "filterStats_pre",
