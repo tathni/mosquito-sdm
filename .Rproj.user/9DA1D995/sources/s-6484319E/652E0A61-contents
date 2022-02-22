@@ -1,0 +1,81 @@
+#######################################################
+# Author: Tejas Athni
+# Project: Mosquito SDM Thermal Dependence
+
+# Description: Sum the stack of environmental covariates by activity season
+#######################################################
+
+source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+
+
+#------------------------------------------------------
+# Load in environmental predictors
+#------------------------------------------------------
+predictors_preStack <- alply(list.files("Environmental Predictors Merged",
+                                        pattern = ".tif",
+                                        full.names = TRUE), 1, function(file){
+                                          print(file)
+                                          rast <- raster(file)
+                                          return(rast)
+                                        })
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
+predictors_preStack <- setNames(predictors_preStack, rasterNames)
+
+
+#------------------------------------------------------
+# Compress predictors into a stacked raster for each activity season combination
+#------------------------------------------------------
+predictors_yearRound <- predictors_preStack[c(1:6,11,14,12:13)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:6,11,14,7:8)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,11,14,9:10)] %>% stack()
+
+
+
+
+
+list.files("./global rasters", # list the global raster files
+           pattern = "tif",
+           full.names = TRUE) %>% 
+  grep(pattern = "Predictor_Sum", value = TRUE, invert = TRUE) %>%  # excluding the summed rasters 
+  {png("./raster_check_figures/layers_mask.png", # set up a png for plotting
+       width = 480*3, height = 480*3*3)
+    par(mfrow = c(length(.), 2)) # arrange the layout with 2 columns and a row for every raster file
+    purrr::map(., function(x){ # loop through the raster file names
+      test <- raster(x) # read in the raster
+      blank_rast <- setValues(test, rep(0, ncell(test))) # make a blank raster filled with zeros with the same structure as the read in raster
+      blank_rast <- mask(blank_rast, mask = test, # everywhere the raster layer was masked, set it to 1 in the zero/blank raster
+                         mask_value = test@file@nodatavalue, 
+                         updatevalue = 1)
+      plot(test, main = x) # plot the original raster later
+      plot(blank_rast) # plot the 0/1 raster that shows the mask
+    })
+    dev.off()
+  }
+
+
+
+### save each layer
+
+### calc(x, sum) for this to make a 0-xx scale of missingness / raster sum
+
+### extract and investigate points that are missing (>= 1)
+
+
+
+### OLD SUMMING
+#------------------------------------------------------
+# Create stacked raster sums
+#------------------------------------------------------
+predictor_sum_yearRound <- sum(predictors_yearRound)
+predictor_sum_photoSeason <- sum(predictors_photoSeason)
+predictor_sum_precipSeason <- sum(predictors_precipSeason)
+
+
+#------------------------------------------------------
+# Save raster sums
+#------------------------------------------------------
+writeRaster(predictor_sum_yearRound, filename = "Environmental Predictors Summed/Predictor_Sum_YearRound.tif", format = "GTiff", overwrite=T)
+writeRaster(predictor_sum_photoSeason, filename = "Environmental Predictors Summed/Predictor_Sum_PhotoSeason.tif", format = "GTiff", overwrite=T)
+writeRaster(predictor_sum_precipSeason, filename = "Environmental Predictors Summed/Predictor_Sum_PrecipSeason.tif", format = "GTiff", overwrite=T)
+
+

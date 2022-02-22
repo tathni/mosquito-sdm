@@ -424,6 +424,8 @@ for(i in 1:length(sdmData)) {
   ## need to re-name photo/precip/yr column names by activity ssn, re-order column names, and merge all species together
   ## need to put colnames(predictors_all) <- c("Centroid_Longitude","Centroid_Latitude")
   
+  ## use caret::createDataPartition() to split into train and test sets
+  
   
   #------------------------------------------------------
   # Rename the columns of the dataframe and merge before exporting the .csv
