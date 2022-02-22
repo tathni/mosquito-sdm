@@ -83,20 +83,12 @@ era5_chelsa_june <- data.frame(raster::extract(era5_june, occ_sf)) %>%
 # Pairs correlation analysis
 #------------------------------------------------------
 pdf("CHELSA Data/ERA5_CHELSA_Occ_January_Pairs.pdf")
-corrplot(cor(era5_chelsa_jan),
-         method = "color",
-         addCoef.col = "black",
-         tl.col = "black", tl.srt = 45,
-         type = "upper")
+ggpairs(era5_chelsa_jan)
 dev.off()
 
 
 pdf("CHELSA Data/ERA5_CHELSA_Occ_June_Pairs.pdf")
-corrplot(cor(era5_chelsa_june),
-         method = "color",
-         addCoef.col = "black",
-         tl.col = "black", tl.srt = 45,
-         type = "upper")
+ggpairs(era5_chelsa_june)
 dev.off()
 
 

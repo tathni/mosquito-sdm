@@ -67,6 +67,81 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   }
   
   
+  
+  ## ??? new bayesian opt function from Marissa, integrate the below:
+  
+  # xgb_opt_fun <- function(eta, gamma, max_depth, subsample, colsample_bytree, 
+  #                         min_child_weight, xgb_mat, cv_ind = NULL, 
+  #                         rounds_max = 100, nfold = 4, nthread = 2,
+  #                         progress_file = ""){
+  #   set.seed(10001)
+  #   mod_xgb_cv <- xgb.cv(
+  #     params = list(booster = "gbtree",
+  #                   eta = eta,
+  #                   gamma = gamma,
+  #                   max_depth = max_depth,
+  #                   subsample = subsample,
+  #                   colsample_bytree = colsample_bytree,
+  #                   min_child_weight = min_child_weight, 
+  #                   objective = "reg:squarederror",
+  #                   eval_metric = "rmse"),
+  #     data = xgb_mat,
+  #     nrounds = rounds_max,
+  #     nthread = nthread,
+  #     nfold = nfold,
+  #     folds = cv_ind,
+  #     early_stopping_rounds = 10,
+  #     print_every_n = 20,
+  #     verbose = TRUE)
+  #   
+  #   if(progress_file != ""){
+  #     write(paste0("nrounds = ", mod_xgb_cv$best_iteration, 
+  #                  ", eta = ", eta, 
+  #                  ", gamma = ", gamma, 
+  #                  ", max_depth = ", max_depth, 
+  #                  ", colsample_bytree = ", colsample_bytree, 
+  #                  ", subsample = ", subsample, 
+  #                  ", min_child_weight = ", min_child_weight, 
+  #                  ", RMSE = ", mod_xgb_cv$evaluation_log %>% 
+  #                    filter(iter == mod_xgb_cv$best_iteration) %>% 
+  #                    pull(test_rmse_mean),
+  #                  "\n"),
+  #           file = progress_file,
+  #           append = T)}
+  #   list(Score = mod_xgb_cv$evaluation_log %>% 
+  #          filter(iter == mod_xgb_cv$best_iteration) %>% 
+  #          pull(test_rmse_mean) %>% 
+  #          multiply_by(-1), 
+  #        Pred = mod_xgb_cv$best_iteration) %>% 
+  #     return
+  # }
+  # bayes_opt_params <- BayesianOptimization(
+  #   function(eta, gamma, max_depth, subsample,
+  #            colsample_bytree, min_child_weight){
+  #     xgb_opt_fun(eta, gamma, max_depth, subsample, 
+  #                 colsample_bytree, min_child_weight, 
+  #                 xgb_train_mat, cv_ind = cv_folds, 
+  #                 rounds_max = max_xgb_rounds, nfold = length(cv_folds), 
+  #                 nthread = usable.cores, 
+  #                 progress_file = txt_progress_file)},
+  #   bounds = param_bounds,
+  #   init_points = bayes_opt_n_init, 
+  #   n_iter = bayes_opt_n_iter)
+  # mod_gb_final <- xgb.train(
+  #   params = c(as.list(bayes_opt_params$Best_Par),
+  #              booster = "gbtree",
+  #              objective = "reg:squarederror",
+  #              eval_metric = "rmse"),
+  #   data = xgb_train_mat,
+  #   nrounds = bayes_opt_params$History %>%
+  #     filter(Value == bayes_opt_params$Best_Value) %>%
+  #     pull(Round) %>%
+  #     magrittr::extract(unlist(bayes_opt_params$Pred), .),
+  #   verbose = 1)
+  
+  
+  
+  
   #------------------------------------------------------
   # Acquire optimal parameters with Bayesian optimization (maximization function) via the R package "rBayesianOptimization"
   #------------------------------------------------------
