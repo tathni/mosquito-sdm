@@ -22,6 +22,8 @@ rasterNames <- c("ELEV","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD"
 predictors_preStack <- setNames(predictors_preStack, rasterNames)
 
 
+## ???? this will be the na 1-10 checks (raster sum checks)
+
 #------------------------------------------------------
 # Compress predictors into a stacked raster for each activity season combination
 #------------------------------------------------------

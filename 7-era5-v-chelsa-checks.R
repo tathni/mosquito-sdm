@@ -83,7 +83,7 @@ era5_chelsa_june <- data.frame(raster::extract(era5_june, occ_sf)) %>%
 # Pairs correlation analysis
 #------------------------------------------------------
 pdf("CHELSA Data/ERA5_CHELSA_Occ_January_Pairs.pdf")
-ggpairs(era5_chelsa_jan)
+ggpairs(era5_chelsa_jan, mapping = aes(alpha = 0.1))
 dev.off()
 
 
