@@ -38,14 +38,16 @@ crs(chelsa_june)
 
 
 #------------------------------------------------------
-## OCCURRENCE POINTS: ERA5 v. CHELSA ##
+## ERA5 v. CHELSA ##
 #------------------------------------------------------
 #------------------------------------------------------
-# Extract 10k occurrence points
+# Prepare occurrence points
 #------------------------------------------------------
+set.seed(250)
+
 occ_points <- Mosquitoes_SpeciesOfInterest %>%
   dplyr::select(c(decimalLongitude, decimalLatitude)) %>%
-  sample_n(100000)  # Oversample to then subset to 10k uniques
+  sample_n(100000)  # Oversample to later subset to 10k points
 
 rast <- era5_jan  # Choose any generic raster to acquire cells and centroids from
 
@@ -57,38 +59,47 @@ occ_longlat <- cellFromXY(rast, occ_points) %>% as.data.frame() %>%
   filter(!is.na(longitude) & !is.na(latitude)) # Remove the NA locations
 
 occ_sf <- st_as_sf(occ_longlat, coords = c("longitude","latitude"),
-                   crs = 4326, agr = "constant") %>%
-  sample_n(10000)
+                   crs = 4326, agr = "constant")
+print(nrow(occ_sf))
 
 
 #------------------------------------------------------
-# Raster extract
+# Raster extract from occurrences and randomly select 10k points
 #------------------------------------------------------
-era5_chelsa_jan <- data.frame(raster::extract(era5_jan, occ_sf)) %>%
+set.seed(250)
+
+era5_chelsa_jan_june <- data.frame(raster::extract(era5_jan, occ_sf)) %>%
   cbind(data.frame(raster::extract(chelsa_jan, occ_sf))) %>%
-  cbind(st_coordinates(occ_sf)) %>%
-  setNames(c("ERA5","CHELSA","X","Y")) %>%
-  na.omit() %>%
-  dplyr::select(-c("X","Y"))
-
-era5_chelsa_june <- data.frame(raster::extract(era5_june, occ_sf)) %>%
+  cbind(data.frame(raster::extract(era5_june, occ_sf))) %>%
   cbind(data.frame(raster::extract(chelsa_june, occ_sf))) %>%
-  cbind(st_coordinates(occ_sf)) %>%
-  setNames(c("ERA5","CHELSA","X","Y")) %>%
+  setNames(c("ERA5_Jan","CHELSA_Jan","ERA5_June","CHELSA_June")) %>%
   na.omit() %>%
-  dplyr::select(-c("X","Y"))
+  sample_n(10000)
 
 
 #------------------------------------------------------
 # Pairs correlation analysis
 #------------------------------------------------------
-pdf("CHELSA Data/ERA5_CHELSA_Occ_January_Pairs.pdf")
-ggpairs(era5_chelsa_jan, mapping = aes(alpha = 0.1))
+pdf("CHELSA Data/ERA5_CHELSA_January_Pairs.pdf")
+ggplot(era5_chelsa_jan_june, aes(x = ERA5_Jan, y = CHELSA_Jan)) +
+  geom_point(alpha = 0.25, shape = 16, size = 2, color = "navyblue") +
+  stat_cor(method = "pearson", p.accuracy = 0.0001) +
+  theme_bw() +
+  labs(title = "January, 1981-2010",
+       subtitle = "10k Random Occurrences",
+       x = "ERA5 Temperature (°C)",
+       y = "CHELSA Temperature (°C)")
 dev.off()
 
-
-pdf("CHELSA Data/ERA5_CHELSA_Occ_June_Pairs.pdf")
-ggpairs(era5_chelsa_june)
+pdf("CHELSA Data/ERA5_CHELSA_June_Pairs.pdf")
+ggplot(era5_chelsa_jan_june, aes(x = ERA5_June, y = CHELSA_June)) +
+  geom_point(alpha = 0.25, shape = 16, size = 2, color = "darkred") +
+  stat_cor(method = "pearson", p.accuracy = 0.0001) +
+  theme_bw() +
+  labs(title = "June, 1981-2010",
+       subtitle = "10k Random Occurrences",
+       x = "ERA5 Temperature (°C)",
+       y = "CHELSA Temperature (°C)")
 dev.off()
 
 
