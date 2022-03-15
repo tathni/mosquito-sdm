@@ -15,11 +15,11 @@
 * 4d-species-list.csv:
 * 5-gee-environmental-covariates.js:
 * 6-gee-temperature-covariates.js:
-* 7-raster-merge.R:
-* 8-raster-sum.R:
+* 7-era5-v-chelsa-checks.R:
+* 8-raster-merge.R:
 * 9-raster-sum-checks.R:
-* 10-breadth-checks.R:
-* 11-era5-v-chelsa-checks.R:
+* 10-raster-sum.R:
+* 11-thermal-breadth-checks.R:
 * 12-raster-data-extraction.R:
 * 13-raster-summary-figures.R:
 * 14-xgboost-model.R:
