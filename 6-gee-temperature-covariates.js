@@ -22,6 +22,7 @@ var years = ee.List.sequence(startYear, endYear);
 
 // Identify distinct geographical regions and define masks to clip landmasses
 // North America polygon is created manually, due to issues regarding export
+// Africa is exported in 2 halves for the PrecipASTM and PrecipASTSD variables
 var countriesUnique = countries.aggregate_array("wld_rgn").flatten().distinct();
 
 var Asia = countries.filter(ee.Filter.inList("wld_rgn", ["N Asia","S Asia","E Asia","SE Asia","SW Asia",
@@ -105,7 +106,8 @@ var rollingPrecip = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(f
                         .select("total_precipitation")
                         .toBands()
                         .multiply(ee.Image.constant(1000))
-                        .reproject("EPSG:4326", null, 1000) // Reproject to a 1 km scale
+                        //.resample("bilinear")
+                        //.reproject("EPSG:4326", null, 1000) // Reproject to a 1 km scale
                         .reduce(ee.Reducer.sum()); // Return the summed precipitation for the year
   })).toBands()
      .reduce(ee.Reducer.mean()) // Average the summed rolling precip over 20-year period by each day
@@ -178,6 +180,7 @@ var TAM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d)
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
+               .resample("bilinear")
                .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .reduce(ee.Reducer.mean())
@@ -195,6 +198,7 @@ var TASD = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
+               .resample("bilinear")
                .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .reduce(ee.Reducer.stdDev())
@@ -213,6 +217,7 @@ var PhotoASTM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(funct
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
+               .resample("bilinear")
                .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .reduce(ee.Reducer.mean())
@@ -230,6 +235,7 @@ var PhotoASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Loop ov
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
+               .resample("bilinear")
                .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .updateMask(diapauseMask)
@@ -250,10 +256,13 @@ var PrecipASTM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(func
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
-               .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .reduce(ee.Reducer.mean())
-})).toBands().updateMask(precipMask).reduce(ee.Reducer.mean());
+})).toBands()
+   .updateMask(precipMask)
+   .reduce(ee.Reducer.mean())
+   .resample("bilinear")
+   .reproject("EPSG:4326", null, 1000);
 
 
 
@@ -268,11 +277,13 @@ var PrecipASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Loop o
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
-               .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .updateMask(precipMask)
      .reduce(ee.Reducer.stdDev()) // Variation across all days in a given year
-})).toBands().reduce(ee.Reducer.mean()); // Average the daily variations for every year
+})).toBands()
+   .reduce(ee.Reducer.mean())
+   .resample("bilinear")
+   .reproject("EPSG:4326", null, 1000); // Average the daily variations for every year
 
 
 
@@ -306,7 +317,7 @@ var exportImage = function(image, bordersRegion, desc){
 
 
 
-
+/*
 // Photoperiod activity season start day, end day, and length, image export
 exportImage(activitySSN_diapause_first, bordersAfrica, "PhotoperiodAS_FirstDay_Africa")
 exportImage(activitySSN_diapause_last, bordersAfrica, "PhotoperiodAS_LastDay_Africa")
@@ -374,6 +385,15 @@ exportImage(PhotoASTM, bordersSouthAmerica, "PhotoASTM_SouthAmerica");
 exportImage(PhotoASTM, bordersOceania, "PhotoASTM_Oceania");
 
 
+// PhotoASTSD, image export
+exportImage(PhotoASTSD, bordersAfrica, "PhotoASTSD_Africa");
+exportImage(PhotoASTSD, bordersAsia, "PhotoASTSD_Asia");
+exportImage(PhotoASTSD, bordersEurope, "PhotoASTSD_Europe");
+exportImage(PhotoASTSD, bordersNorthAmerica, "PhotoASTSD_NorthAmerica");
+exportImage(PhotoASTSD, bordersCentralAmerica, "PhotoASTSD_CentralAmerica");
+exportImage(PhotoASTSD, bordersSouthAmerica, "PhotoASTSD_SouthAmerica");
+exportImage(PhotoASTSD, bordersOceania, "PhotoASTSD_Oceania");
+
 // PrecipASTM, image export
 exportImage(PrecipASTM, bordersAfrica, "PrecipASTM_Africa");
 exportImage(PrecipASTM, bordersAsia, "PrecipASTM_Asia");
@@ -384,16 +404,6 @@ exportImage(PrecipASTM, bordersSouthAmerica, "PrecipASTM_SouthAmerica");
 exportImage(PrecipASTM, bordersOceania, "PrecipASTM_Oceania");
 
 
-// PhotoASTSD, image export
-exportImage(PhotoASTSD, bordersAfrica, "PhotoASTSD_Africa");
-exportImage(PhotoASTSD, bordersAsia, "PhotoASTSD_Asia");
-exportImage(PhotoASTSD, bordersEurope, "PhotoASTSD_Europe");
-exportImage(PhotoASTSD, bordersNorthAmerica, "PhotoASTSD_NorthAmerica");
-exportImage(PhotoASTSD, bordersCentralAmerica, "PhotoASTSD_CentralAmerica");
-exportImage(PhotoASTSD, bordersSouthAmerica, "PhotoASTSD_SouthAmerica");
-exportImage(PhotoASTSD, bordersOceania, "PhotoASTSD_Oceania");
-
-
 // PrecipASTSD, image export
 exportImage(PrecipASTSD, bordersAfrica, "PrecipASTSD_Africa");
 exportImage(PrecipASTSD, bordersAsia, "PrecipASTSD_Asia");
@@ -402,3 +412,4 @@ exportImage(PrecipASTSD, bordersNorthAmerica, "PrecipASTSD_NorthAmerica");
 exportImage(PrecipASTSD, bordersCentralAmerica, "PrecipASTSD_CentralAmerica");
 exportImage(PrecipASTSD, bordersSouthAmerica, "PrecipASTSD_SouthAmerica");
 exportImage(PrecipASTSD, bordersOceania, "PrecipASTSD_Oceania");
+*/

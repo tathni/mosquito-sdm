@@ -5,9 +5,12 @@
 var precipitation = ee.ImageCollection("ECMWF/ERA5/DAILY");
 var EVI = ee.ImageCollection("MODIS/006/MOD13A2");
 var forestCover = ee.ImageCollection("MODIS/006/MOD44B");
-var humanPopulation = ee.ImageCollection("CIESIN/GPWv411/GPW_Population_Density");
+var populationDensity = ee.ImageCollection([
+  ee.Image("users/tathni/GHS_Pop_2000"),
+  ee.Image("users/tathni/GHS_Pop_2015")]);
 var cattleDensity = ee.Image("users/tathni/Cattle_2010_Aw");
 var windSpeed = ee.ImageCollection("IDAHO_EPSCOR/TERRACLIMATE");
+var surfaceWater = ee.Image("JRC/GSW1_3/GlobalSurfaceWater");
 var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017");
 
 
@@ -36,7 +39,7 @@ var bordersSouthAmerica = SouthAmerica.geometry().dissolve().bounds();
 var Oceania = countries.filter(ee.Filter.inList("wld_rgn", ["Oceania","Australia"]));
 var bordersOceania = Oceania.geometry().dissolve().bounds();
 
-var bordersNorthAmerica = /* color: #d63000 */ee.Geometry.Polygon(
+var bordersNorthAmerica = ee.Geometry.Polygon(
         [[[-134.71962177972188, 51.79168228105622],
           [-130.50087177972188, 41.718093909106074],
           [-159.68055927972185, 16.567839160193564],
@@ -81,6 +84,7 @@ var precipMainQuarters = ee.ImageCollection.fromImages(ee.List.sequence(0, 9).ma
      return precipByQuarter.filter(ee.Filter.calendarRange(y, y, "year"))
                            .select("total_precipitation")
                            .toBands()
+                           .resample("bilinear")
                            .reproject("EPSG:4326", null, 1000) // Reproject to a 1 km scale
                            .reduce(ee.Reducer.sum()); // Sum the total precip for each year within the quarter specified above
   })).toBands()
@@ -97,10 +101,12 @@ var precipNovQuarter = ee.ImageCollection.fromImages(ee.List.sequence(10, 10).ma
      var tempFirstHalf = precipQuarterFirstHalf.filter(ee.Filter.calendarRange(y, y, "year")) // Nov&Dec[year]
                                                .select("total_precipitation")
                                                .toBands()
+                                               .resample("bilinear")
                                                .reproject("EPSG:4326", null, 1000);
      var tempSecondHalf = precipQuarterSecondHalf.filter(ee.Filter.calendarRange(ee.Number(y).add(1), ee.Number(y).add(1), "year")) // Jan[year+1]
                                                  .select("total_precipitation")
                                                  .toBands()
+                                                 .resample("bilinear")
                                                  .reproject("EPSG:4326", null, 1000);
      var stackedBands = tempFirstHalf.addBands(tempSecondHalf); // Combine Nov&Dec[year] and Jan[year+1]
      return stackedBands.reduce(ee.Reducer.sum()); // Reduce and create a summation image
@@ -117,10 +123,12 @@ var precipDecQuarter = ee.ImageCollection.fromImages(ee.List.sequence(11, 11).ma
      var firstHalf = precipQuarterFirstHalf.filter(ee.Filter.calendarRange(y, y, "year")) // Dec[year]
                                            .select("total_precipitation")
                                            .toBands()
+                                           .resample("bilinear")
                                            .reproject("EPSG:4326", null, 1000);
      var secondHalf = precipQuarterSecondHalf.filter(ee.Filter.calendarRange(ee.Number(y).add(1), ee.Number(y).add(1), "year")) // Jan&Feb[year+1]
                                              .select("total_precipitation")
                                              .toBands()
+                                             .resample("bilinear")
                                              .reproject("EPSG:4326", null, 1000);
      var stackedBands = firstHalf.addBands(secondHalf); // Combine Dec[year] and Jan&Feb[year+1]
      return stackedBands.reduce(ee.Reducer.sum()); // Reduce and create a summation image
@@ -146,6 +154,7 @@ var meanEVI = ee.ImageCollection.fromImages(years.map(function(y){
   return EVI.filter(ee.Filter.calendarRange(y, y, "year"))
             .select("EVI")
             .toBands()
+            .resample("bilinear")
             .reproject("EPSG:4326", null, 1000)
             .multiply(0.0001)
             .reduce(ee.Reducer.mean());
@@ -159,6 +168,7 @@ var stdDevEVI = ee.ImageCollection.fromImages(years.map(function(y){
   return EVI.filter(ee.Filter.calendarRange(y, y, "year"))
             .select("EVI")
             .toBands()
+            .resample("bilinear")
             .reproject("EPSG:4326", null, 1000)
             .multiply(0.0001)
             .reduce(ee.Reducer.stdDev());
@@ -172,6 +182,9 @@ var forestCoverPercent = ee.ImageCollection.fromImages(years.map(function(y){
   return forestCover.filter(ee.Filter.calendarRange(y, y, "year"))
             .select("Percent_Tree_Cover")
             .toBands()
+            .reduceResolution({
+              reducer: ee.Reducer.mean(),
+              maxPixels: 4096 })
             .reproject("EPSG:4326", null, 1000)
             .reduce(ee.Reducer.mean());
 })).toBands().reduce(ee.Reducer.mean()).clip(countries);
@@ -180,20 +193,14 @@ print(forestCoverPercent); // FC
 
 
 // Calculate mean annual human population density, then average over years available for our study period
-var specialYears = ee.List([2000, 2005, 2010, 2015, 2020])
-var meanHPD = ee.ImageCollection.fromImages(specialYears.map(function(y){
-  return humanPopulation.filter(ee.Filter.calendarRange(y, y, "year"))
-                        .select("population_density")
-                        .toBands()
-                        .reproject("EPSG:4326", null, 1000)
-                        .reduce(ee.Reducer.mean());
-})).toBands().reduce(ee.Reducer.mean()).clip(countries);
+var meanHPD = populationDensity.mean().clip(countries);
 print(meanHPD); // HPD
 
 
 
 // Calculate cattle density
 var cattleDensityBand = cattleDensity.select("b1")
+                                     .resample("bilinear")
                                      .reproject("EPSG:4326", null, 1000)
                                      .clip(countries);
 print(cattleDensityBand); // CD
@@ -205,10 +212,23 @@ var meanWindSpeed = ee.ImageCollection.fromImages(years.map(function(y){
   return windSpeed.filter(ee.Filter.calendarRange(y, y, "year"))
                         .select("vs")
                         .toBands()
+                        .resample("bilinear")
                         .reproject("EPSG:4326", null, 1000)
                         .reduce(ee.Reducer.mean());
 })).toBands().reduce(ee.Reducer.mean()).clip(countries);
 print(meanWindSpeed); // WS
+
+
+
+// Calculate surface water
+var surfaceWaterBand = surfaceWater.select("seasonality")
+                                   .unmask(0)
+                                   .reduceResolution({
+                                     reducer: ee.Reducer.mean(),
+                                     maxPixels: 4096 })
+                                   .reproject("EPSG:4326", null, 1000)
+                                   .clip(countries);
+print(surfaceWaterBand); // SW
 
 
 
@@ -227,7 +247,7 @@ var exportImage = function(image, bordersRegion, desc){
 
 
 
-
+/*
 // Precipitation of wettest quarter, image export
 exportImage(precipWettestQuarter, bordersAfrica, "PWQ_Africa");
 exportImage(precipWettestQuarter, bordersAsia, "PWQ_Asia");
@@ -306,3 +326,14 @@ exportImage(meanWindSpeed, bordersNorthAmerica, "WS_NorthAmerica");
 exportImage(meanWindSpeed, bordersCentralAmerica, "WS_CentralAmerica");
 exportImage(meanWindSpeed, bordersSouthAmerica, "WS_SouthAmerica");
 exportImage(meanWindSpeed, bordersOceania, "WS_Oceania");
+
+
+// Surface water, image export
+exportImage(surfaceWaterBand, bordersAfrica, "SW_Africa");
+exportImage(surfaceWaterBand, bordersAsia, "SW_Asia");
+exportImage(surfaceWaterBand, bordersEurope, "SW_Europe");
+exportImage(surfaceWaterBand, bordersNorthAmerica, "SW_NorthAmerica");
+exportImage(surfaceWaterBand, bordersCentralAmerica, "SW_CentralAmerica");
+exportImage(surfaceWaterBand, bordersSouthAmerica, "SW_SouthAmerica");
+exportImage(surfaceWaterBand, bordersOceania, "SW_Oceania");
+*/

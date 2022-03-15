@@ -92,7 +92,7 @@ ActivitySeason_Type <- c("None- Year Round",
 #------------------------------------------------------
 project_dir <- "E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/"
 setwd(project_dir)
-  
+
 
 #------------------------------------------------------
 # Define a decimal places function for filtering by latitude/longitude reporting precision uncertainty
@@ -106,5 +106,4 @@ decimalNums <- function(x) {
 }
 
 options(scipen = 100000)
-
 

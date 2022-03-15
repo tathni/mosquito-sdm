@@ -41,19 +41,8 @@ toc - tic
 # Processing for environmental predictor rasters
 #------------------------------------------------------
 if(activity_ssn == FALSE) {
-  # rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
-  rasterNames <-c("EVIM","EVISD","FC")
+  rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
   inputPredictors %<>% setNames(rasterNames) 
-  
-  # #------------------------------------------------------
-  # # Crop the temperature rasters to landmasses and remove ocean background
-  # #------------------------------------------------------
-  # inputPredictors[[7]] <- raster::mask(inputPredictors[[7]], wrld_simpl) # PhotoASTM
-  # inputPredictors[[8]] <- raster::mask(inputPredictors[[8]], wrld_simpl) # PhotoASTSD
-  # inputPredictors[[9]] <- raster::mask(inputPredictors[[9]], wrld_simpl) # PrecipASTM
-  # inputPredictors[[10]] <- raster::mask(inputPredictors[[10]], wrld_simpl) # PrecipASTSD
-  # inputPredictors[[12]] <- raster::mask(inputPredictors[[12]], wrld_simpl) # TAM
-  # inputPredictors[[13]] <- raster::mask(inputPredictors[[13]], wrld_simpl) # TASD
 }
 
 
@@ -79,6 +68,7 @@ if(activity_ssn == TRUE) {
 # Save each individual merged covariate raster as a .tif file
 #------------------------------------------------------
 for (i in 1:length(inputPredictors)) {
-  writeRaster(inputPredictors[[i]], filename = paste0("Environmental Predictors Merged/",rasterNames[i]), format = "GTiff")
+  writeRaster(inputPredictors[[i]], filename = paste0("Environmental Predictors Merged/",rasterNames[i]),
+              format = "GTiff", overwrite = TRUE)
 }
 

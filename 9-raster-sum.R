@@ -18,16 +18,16 @@ predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                           rast <- raster(file)
                                           return(rast)
                                         })
-rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
 predictors_preStack <- setNames(predictors_preStack, rasterNames)
 
 
 #------------------------------------------------------
 # Compress predictors into a stacked raster for each activity season combination
 #------------------------------------------------------
-predictors_yearRound <- predictors_preStack[c(1:6,11,14,12:13)] %>% stack()
-predictors_photoSeason <- predictors_preStack[c(1:6,11,14,7:8)] %>% stack()
-predictors_precipSeason <- predictors_preStack[c(1:6,11,14,9:10)] %>% stack()
+predictors_yearRound <- predictors_preStack[c(1:6,11:12,15,13:14)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:6,11:12,15,7:8)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,11:12,15,9:10)] %>% stack()
 
 
 #------------------------------------------------------

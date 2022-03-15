@@ -146,6 +146,8 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Filter occ to locations with summed rasters > 0
   #------------------------------------------------------
+  ## ??? remove the summed NA raster filter step, impute NAs or drop any row with any NA?
+  
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Summed rasters filtering for occ"))
   
   occ_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], occ_activity_sf)
@@ -195,6 +197,8 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Filter bg mask to locations with summed rasters > 0
   #------------------------------------------------------
+  ## ??? remove the summed NA raster filter step, impute NAs or drop any row with any NA?
+  
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Summed rasters filtering for bg mask"))
   
   bg_summed <- raster::extract(predictor_sums[[(predictor_sums_index[[i]])]], bg_activity_sf)
