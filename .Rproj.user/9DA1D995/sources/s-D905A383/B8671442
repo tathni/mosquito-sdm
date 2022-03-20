@@ -1,0 +1,27 @@
+{
+    "id": "B8671442",
+    "path": "~/GitHub/mosquito-sdm/12-occ-filter-metadata.R",
+    "project_path": "12-occ-filter-metadata.R",
+    "type": "r_source",
+    "hash": "15051973",
+    "contents": "",
+    "dirty": false,
+    "created": 1647818550714.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "45,44",
+        "scrollLine": "36"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1647820314,
+    "encoding": "ISO8859-1",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1647820314315,
+    "read_only": false,
+    "read_only_alternatives": []
+}

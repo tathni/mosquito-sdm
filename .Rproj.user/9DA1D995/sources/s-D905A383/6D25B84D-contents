@@ -6,7 +6,7 @@
 #######################################################
 
 source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
-activity_ssn = FALSE  # Merging environmental predictors or activity season rasters?
+activity_ssn_metadata = FALSE  # Merging environmental predictors or activity season metadata rasters?
 
 
 #------------------------------------------------------
@@ -40,7 +40,7 @@ toc - tic
 #------------------------------------------------------
 # Processing for environmental predictor rasters
 #------------------------------------------------------
-if(activity_ssn == FALSE) {
+if(activity_ssn_metadata == FALSE) {
   rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
   inputPredictors %<>% setNames(rasterNames) 
   
@@ -58,14 +58,14 @@ if(activity_ssn == FALSE) {
 
 
 #------------------------------------------------------
-# Processing for activity season rasters
+# Processing for activity season metadata rasters
 #------------------------------------------------------
-if(activity_ssn == TRUE) {
+if(activity_ssn_metadata == TRUE) {
   rasterNames <- c("PhotoAS_LastDay","PhotoAS_Length","PhotoAS_StartDay","PrecipAS_LastDay","PrecipAS_Length","PrecipAS_StartDay")
   inputPredictors %<>% setNames(rasterNames)
   
   #------------------------------------------------------
-  # Change extent of Africa's precipitation activity season rasters to global
+  # Change extent of Africa's precipitation activity season metadata rasters to global
   #------------------------------------------------------
   inputPredictors[[4]] %<>% raster::extend(inputPredictors[[1]], value=NA)
   inputPredictors[[5]] %<>% raster::extend(inputPredictors[[1]], value=NA)

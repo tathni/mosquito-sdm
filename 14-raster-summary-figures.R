@@ -189,7 +189,7 @@ predictors <- alply(list.files("Environmental Predictors Merged",
                                      return(rast)
                                    })
 
-rasterNames <- c("CD","EVIM","EVISD","FC","HP","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
+rasterNames <- c("CD","EVIM","EVISD","FC","HP","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
 rasterNames_spaced <- c("Cattle Density",
                         "Enhanced Vegetation Index - Mean",
                         "Enhanced Vegetation Index - Standard Deviation",
@@ -262,6 +262,9 @@ for(i in 1:length(samplingMaps)) {
 predictors %<>% stack()
 set.seed(seedNum)
 
+Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
+                                         encoding = "UTF-8", stringsAsFactors = FALSE)
+
 occ_points <- Mosquitoes_SpeciesOfInterest %>%
   dplyr::select(c(decimalLongitude, decimalLatitude))
 
@@ -276,16 +279,20 @@ occ_longlat <- cellFromXY(rast, occ_points) %>% as.data.frame() %>%
 
 occ_sf <- st_as_sf(occ_longlat, coords = c("longitude","latitude"),
                    crs = 4326, agr = "constant")
-pairs_sample <- occ_sf[sample(nrow(occ_sf),
-                              size = 10000,
-                              replace = FALSE),] # Select 10k occ points for pairs sampling
-pairs_bg <- raster::extract(predictors, pairs_sample)
 
-pairs_bg2 <- pairs_bg %>% na.omit()
+occ_15k <- occ_sf[sample(nrow(occ_sf),
+                         size = 15000,
+                         replace = FALSE),] # Oversample to acquire 10k occ points for pairs sampling
 
+raster_15k <- raster::extract(predictors, occ_oversample)
+
+raster_10k <- raster_15k %>% na.omit() %>%
+  .[sample(nrow(.),
+           size = 10000,
+           replace = FALSE),]
 
 pdf("Pairs Correlation Covariates.pdf", width=9, height=8)
-corrplot(cor(pairs_bg2),
+corrplot(cor(raster_10k),
          method = "color",
          addCoef.col = "black",
          tl.col = "black", tl.srt = 45,

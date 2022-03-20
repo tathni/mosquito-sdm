@@ -1,0 +1,162 @@
+#######################################################
+# Author: Tejas Athni
+# Project: Mosquito SDM Thermal Dependence
+
+# Description: Create a stack of binary-mask (e.g., 0/1) environmental covariates for checking NAs
+# Assess correlation between variables using a pairs analysis
+#######################################################
+
+source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+
+
+#------------------------------------------------------
+## DATA LOAD-IN ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Load in environmental predictors
+#------------------------------------------------------
+predictors_preStack <- alply(list.files("Environmental Predictors Merged",
+                                        pattern = ".tif",
+                                        full.names = TRUE), 1, function(file){
+                                          print(file)
+                                          rast <- raster(file)
+                                          return(rast)
+                                        })
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
+predictors_preStack <- setNames(predictors_preStack, rasterNames)
+
+Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_SpeciesOfInterest.csv", header = TRUE,
+                                         encoding = "UTF-8", stringsAsFactors = FALSE)
+
+
+
+#------------------------------------------------------
+## BINARY MASK CHECKS ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Initialize and process binary-mask rasters, where 0 = value, 1 = NA or missing value
+#------------------------------------------------------
+binary_mask_preStack <- list()
+
+for(i in 1:length(predictors_preStack)) {
+  test <- predictors_preStack[[i]]
+  
+  blank_rast <- setValues(test, rep(0, ncell(test))) # Make a blank raster filled with zeros with the same structure as the read-in raster
+  binary_mask <- mask(blank_rast, mask = test, # Everywhere the raster layer was masked, set it to 1 in the binary-mask raster
+                      mask_value = test@file@nodatavalue, 
+                      updatevalue = 1)
+  
+  binary_mask_preStack %<>% c(binary_mask)
+}
+
+
+#------------------------------------------------------
+# Plot individual binary mask raster layers
+#------------------------------------------------------
+binary_mask_stack <- binary_mask_preStack %>% stack()
+
+for(i in 1:nlayers(binary_mask_stack)) {
+  save_name <- paste0("Environmental Predictors Sum Checks/",
+                      names(binary_mask_stack)[i],".png")
+  png(save_name)
+  plot(binary_mask_stack[[i]])
+  dev.off()
+}
+
+
+#------------------------------------------------------
+# Sum binary mask raster layers and plot
+#------------------------------------------------------
+binary_mask_sum <- sum(binary_mask_stack)
+
+png("Environmental Predictors Sum Checks/Binary_Mask_Sum_NA.png")
+plot(binary_mask_sum)
+dev.off()
+
+binary_mask_sum <- raster("Environmental Predictors Sum Checks/Binary_Mask_Sum.tif")
+
+
+
+# #------------------------------------------------------
+# ## NA CELL COUNTS ##
+# #------------------------------------------------------
+# #------------------------------------------------------
+# # Count number of total landmass cells
+# #------------------------------------------------------
+# complete_raster <- predictors_preStack[[6]]
+# complete_raster[!is.na(complete_raster)] <- 1  # Choose random raster with known completeness to acquire total cells
+# total_landmass_cells <- freq(complete_raster, value = 1)
+# 
+# 
+# #------------------------------------------------------
+# # Count number of NA cells in each raster layer
+# #------------------------------------------------------
+# na_cells_list <- list()
+# 
+# for(i in 1:length(binary_mask_preStack)) {
+#   # Mask the NAs in the ocean using the known complete raster
+#   my_layer <- mask(binary_mask_preStack[[i]], mask = complete_raster)
+#   
+#   # Count the number of 1's in each binary mask layer, which signifies landmass NA cells
+#   layer_na_cells <- freq(my_layer, value = 1)
+#   na_cells_list %<>% c(layer_na_cells)
+# }
+# 
+# 
+# #------------------------------------------------------
+# # Count number of NA cells in the summed binary mask
+# #------------------------------------------------------
+# my_summed <- mask(binary_mask_sum, mask = complete_raster)
+# my_summed[my_summed > 0] <- 1
+# summed_na_cells <- freq(my_summed, value = 1)
+
+
+
+#------------------------------------------------------
+## PAIRS CORRELATION PLOT ##
+#------------------------------------------------------
+#------------------------------------------------------
+# Acquire occurrence cell centroids
+#------------------------------------------------------
+occ_points <- Mosquitoes_SpeciesOfInterest %>%
+  dplyr::select(c(decimalLongitude, decimalLatitude))
+
+rast <- predictors_preStack[[1]] # Choose any generic raster to acquire cells and centroids from
+
+occ_longlat <- cellFromXY(rast, occ_points) %>% as.data.frame() %>%
+  setNames("cell") %>% unique() %>%
+  mutate(longitude = xFromCell(rast, cell),  # Acquire longitude (x) and latitude (y) from cell centroids
+         latitude = yFromCell(rast, cell)) %>%
+  dplyr::select(-cell) %>% # Cell number is now obsolete if working from (x,y) as an sf object
+  filter(!is.na(longitude) & !is.na(latitude)) # Remove the NA locations
+
+occ_sf <- st_as_sf(occ_longlat, coords = c("longitude","latitude"),
+                   crs = 4326, agr = "constant")
+
+
+#------------------------------------------------------
+# Extract raster data from 10k randomly chosen occurrence points
+#------------------------------------------------------
+occ_15k <- occ_sf[sample(nrow(occ_sf),
+                         size = 15000,
+                         replace = FALSE),] # Oversample to acquire 10k occ points for pairs sampling
+
+raster_15k <- raster::extract(predictors, occ_oversample)
+
+raster_10k <- raster_15k %>% na.omit() %>%
+  .[sample(nrow(.),
+           size = 10000,
+           replace = FALSE),]
+
+
+#------------------------------------------------------
+# Visualize pairs plot
+#------------------------------------------------------
+pdf("Pairs Correlation Covariates.pdf", width=9, height=8)
+corrplot(cor(raster_10k),
+         method = "color",
+         addCoef.col = "black",
+         tl.col = "black", tl.srt = 45,
+         type = "upper")
+dev.off()
+

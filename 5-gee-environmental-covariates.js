@@ -62,6 +62,11 @@ var bordersNorthAmerica = ee.Geometry.Polygon(
 
 
 
+// Define Greenland separately to use as mask to convert NAs to 0s for Cattle Density covariate
+var Greenland = countries.filter(ee.Filter.inList("country_na", ["Greenland"]));
+var bordersGreenland = Greenland.geometry().dissolve().bounds();
+
+
 // Set limits for taking averages
 var startDate = ee.Date("2000-01-01");
 var endDate = ee.Date("2019-12-31");
@@ -266,6 +271,7 @@ exportImage(precipDriestQuarter, bordersNorthAmerica, "PDQ_NorthAmerica");
 exportImage(precipDriestQuarter, bordersCentralAmerica, "PDQ_CentralAmerica");
 exportImage(precipDriestQuarter, bordersSouthAmerica, "PDQ_SouthAmerica");
 exportImage(precipDriestQuarter, bordersOceania, "PDQ_Oceania");
+exportImage(precipDriestQuarter, bordersGreenland, "PDQ_Greenland_Mask"); // For masking of CD
 
 
 // Mean EVI, image export

@@ -351,6 +351,6 @@ filter_metadata_pre[[7]][[8]] <- nrow(soi_coord_decplace %>% filter(species == "
 #------------------------------------------------------
 # Save the data file, to be used in raster data extraction script to complete the filter metadata
 #------------------------------------------------------
-saveRDS(filter_metadata_pre, "Metadata/filter_metadata_pre.RDS")
+saveRDS(filter_metadata_pre, "filter_metadata_pre.RDS")
 
 

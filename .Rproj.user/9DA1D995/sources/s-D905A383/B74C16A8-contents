@@ -63,6 +63,7 @@ data(wrld_simpl)
 my_crs <- "+proj=longlat +datum=WGS84 +no_defs"
 memory.limit(size=56000)
 seedNum <- 250
+set.seed(seedNum)
 
 
 #------------------------------------------------------

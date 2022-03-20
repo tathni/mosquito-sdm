@@ -19,6 +19,24 @@ Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_Speci
 
 
 #------------------------------------------------------
+# Load in environmental predictors and stack by activity season
+#------------------------------------------------------
+predictors_preStack <- alply(list.files("Environmental Predictors Merged",
+                                        pattern = ".tif",
+                                        full.names = TRUE), 1, function(file){
+                                          print(file)
+                                          rast <- raster(file)
+                                          return(rast)
+                                        })
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
+predictors_preStack <- setNames(predictors_preStack, rasterNames)
+
+predictors_yearRound <- predictors_preStack[c(1:6,11,14,12:13)] %>% stack()
+predictors_photoSeason <- predictors_preStack[c(1:6,11,14,7:8)] %>% stack()
+predictors_precipSeason <- predictors_preStack[c(1:6,11,14,9:10)] %>% stack()
+
+
+#------------------------------------------------------
 # Load in background bias masks
 #------------------------------------------------------
 bias_masks <- alply(list.files("Background Bias Masks",
@@ -47,9 +65,9 @@ ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
 
 
 #------------------------------------------------------
-# Load in activity season length rasters
+# Load in activity season length masks
 #------------------------------------------------------
-activity_lengths <- alply(list.files("Activity Season Lengths",
+activity_lengths <- alply(list.files("Filter Masks/Activity Season Lengths",
                                      pattern = ".tif",
                                      full.names = TRUE), 1, function(file){
                                        print(file)
@@ -61,43 +79,11 @@ activity_lengths_index <- c(NA,1,2,NA,NA,1,NA,1)
 
 
 #------------------------------------------------------
-# Load in summed environmental predictors
-#------------------------------------------------------
-predictor_sums <- alply(list.files("Environmental Predictors Summed",
-                                   pattern = ".tif",
-                                   full.names = TRUE), 1, function(file){
-                                     print(file)
-                                     rast <- raster(file)
-                                     return(rast)
-                                   }) %>%
-  setNames(c("Photoperiod","Precipitation","YearRound"))
-predictor_sums_index <- c(3,1,2,3,3,1,3,1)
-
-
-#------------------------------------------------------
-# Load in environmental predictors and stack by activity season
-#------------------------------------------------------
-predictors_preStack <- alply(list.files("Environmental Predictors Merged",
-                                        pattern = ".tif",
-                                        full.names = TRUE), 1, function(file){
-                                          print(file)
-                                          rast <- raster(file)
-                                          return(rast)
-                                        })
-rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","TAM","TASD","WS")
-predictors_preStack <- setNames(predictors_preStack, rasterNames)
-
-predictors_yearRound <- predictors_preStack[c(1:6,11,14,12:13)] %>% stack()
-predictors_photoSeason <- predictors_preStack[c(1:6,11,14,7:8)] %>% stack()
-predictors_precipSeason <- predictors_preStack[c(1:6,11,14,9:10)] %>% stack()
-
-
-#------------------------------------------------------
 # Create lists and containers to house filter metadata
 #------------------------------------------------------
 filter_metadata_pre <- readRDS("filter_metadata_pre.RDS")
 filter_metadata_shell <- data.frame(matrix(ncol = 4, nrow=8))
-colnames(filter_metadata_shell) <- c("Activity_Season","Unique_NonNA_Cells","Activity_Season_Cells","Raster_Sum_NonNA_Cells")
+colnames(filter_metadata_shell) <- c("Activity_Season","Unique_NonNA_Cells","Activity_Season_Cells","Covariates_NonNA_Cells")
 filter_metadata <- cbind(filter_metadata_pre, filter_metadata_shell) %>%
   .[,c(1,8,2:7,9:11)]
 
@@ -288,11 +274,12 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   set.seed(seedNum)
   
   occ <- occ_sf_list[[i]]
+  multiplier <- 2
   
   bg_df <- bg_mask_list[[i]] %>%
     mutate(weight = count/sum(count))
   bg <- bg_df[sample(nrow(bg_df),
-                     size = 2*nrow(occ),
+                     size = multiplier * nrow(occ),
                      replace = FALSE,
                      prob = bg_df$weight),]
   
@@ -341,15 +328,17 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   print(paste0("[",SpeciesOfInterest_Names[i],"]: Splitting data into train-evaluation sets at 80%/20%"))
   set.seed(seedNum)
   
+  train_percent <- 0.8
+  
   predictors_occ$Data_Split <- NA
   predictors_occ$Data_Split[sample(nrow(predictors_occ),
-                                   size = 0.8*nrow(predictors_occ),
+                                   size = train_percent * nrow(predictors_occ),
                                    replace = FALSE)] <- "Training"
   predictors_occ$Data_Split[is.na(predictors_occ$Data_Split)] <- "Evaluation"
   
   predictors_bg$Data_Split <- NA
   predictors_bg$Data_Split[sample(nrow(predictors_bg),
-                                  size = 0.8*nrow(predictors_bg),
+                                  size = train_percent * nrow(predictors_bg),
                                   replace = FALSE)] <- "Training"
   predictors_bg$Data_Split[is.na(predictors_bg$Data_Split)] <- "Evaluation"
   
@@ -470,9 +459,8 @@ for(i in 1:length(species_maps)) {
 # Export .csv files
 #------------------------------------------------------
 # ??
-write.csv(traineval_metadata, file = "Train Eval Metadata by Species.csv", row.names=FALSE)
-write.csv(filter_metadata, file = "Filter Metadata by Species.csv", row.names=FALSE)
-write.csv(df_final, file = "SDM Data.csv", row.names=FALSE)
+write.csv(traineval_metadata, file = "Metadata/Train Eval Metadata by Species.csv", row.names=FALSE)
+write.csv(df_final, file = "Final Analysis Dataset/SDM Data.csv", row.names=FALSE)
 
 
 
