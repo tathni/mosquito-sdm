@@ -2,7 +2,7 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Extract and collate raster data for each of the mosquito species' analysis dataset
+# Description: Assess thermal breadth of occurrence and background points
 #######################################################
 
 source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
@@ -89,15 +89,15 @@ bias_masks_index <- c(4,4,1,2,3,4,4,4)
 # Load in ecoregion shapefiles
 #------------------------------------------------------
 ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
-                               pattern = ".RDS",
-                               full.names = TRUE), 1, function(file){
-                                 print(file)
-                                 shapefile <- readRDS(file)
-                                 return(shapefile)
-                               }) %>%
+                         pattern = ".RDS",
+                         full.names = TRUE), 1, function(file){
+                           print(file)
+                           shapefile <- readRDS(file)
+                           return(shapefile)
+                           }) %>%
   setNames(c("Ae_Aegypti","Ae_Albopictus","An_Gambiae","An_Stephensi",
              "Cx_Annuli","Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
-
+  
 
 
 #------------------------------------------------------
@@ -226,22 +226,16 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 
 
 #------------------------------------------------------
-## STEP 2: EXTRACT RASTER VALUES BY SPECIES ##
+## STEP 2: EXTRACT TEMPERATURE VALUES BY SPECIES ##
 #------------------------------------------------------
-#------------------------------------------------------
-# Create lists and containers to house train-eval metadata and extracted raster covariate data
-#------------------------------------------------------
-traineval_metadata <- data.frame(matrix(ncol = 8, nrow = 8))
-colnames(traineval_metadata) <- c("Species","Activity_Season","Training_Occ","Training_Bg","Evaluation_Occ","Evaluation_Bg","Total_Occ","Total_Bg")
-sdm_data <- list()
+occ_temp_mean_list <- c()
+bg_temp_mean_list <- c()
+occ_temp_sd_list <- c()
+bg_temp_sd_list <- c()
 
-
-#------------------------------------------------------
-# Loop through by species
-#------------------------------------------------------
 for(i in 1:length(SpeciesOfInterest_Names)) {
-  print(paste0("-- Step 2: Extracting raster values for ", SpeciesOfInterest_Names[[i]]," --"))
-  tic <- Sys.time()
+  set.seed(seedNum)
+  print(paste0("-- Step 2: Extracting temperature values for ", SpeciesOfInterest_Names[[i]]," --"))
   
   #------------------------------------------------------
   # Set predictor stack according to specific activity season setting
@@ -277,116 +271,103 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   
   
   #------------------------------------------------------
-  # Extract raster covariate values for occ and bg
+  # Extract temperature mean and SD values for occ and bg
   #------------------------------------------------------
-  predictors_occ <- data.frame(raster::extract(predictors, occ)) %>%
-    cbind(c(rep(SpeciesOfInterest_Names[[i]], nrow(.))),
-          st_coordinates(occ),
-          c(rep(ActivitySeason_Type[i], nrow(.))),
-          c(rep("1", nrow(.))))
+  occ_temp_mean <- data.frame(raster::extract(predictors[[10]], occ)) %>%
+    cbind(st_coordinates(occ) %>% as.data.frame()) %>%
+    setNames(c("temp_mean","longitude","latitude"))
+  bg_temp_mean <- data.frame(raster::extract(predictors[[10]], bg)) %>%
+    cbind(st_coordinates(bg) %>% as.data.frame()) %>%
+    setNames(c("temp_mean","longitude","latitude"))
   
-  predictors_bg <- data.frame(raster::extract(predictors, bg)) %>%
-    cbind(c(rep(SpeciesOfInterest_Names[[i]], nrow(.))),
-          st_coordinates(bg),
-          c(rep(ActivitySeason_Type[i], nrow(.))),
-          c(rep("0", nrow(.))))
-  
-  
-  #------------------------------------------------------
-  # Split data 80% for model training, and 20% for evaluation
-  #------------------------------------------------------
-  set.seed(seedNum)
-  train_percent <- 0.8
-  
-  predictors_occ$Data_Split <- NA
-  predictors_occ$Data_Split[sample(nrow(predictors_occ),
-                                   size = train_percent * nrow(predictors_occ),
-                                   replace = FALSE)] <- "Training"
-  predictors_occ$Data_Split[is.na(predictors_occ$Data_Split)] <- "Evaluation"
-  
-  predictors_bg$Data_Split <- NA
-  predictors_bg$Data_Split[sample(nrow(predictors_bg),
-                                  size = train_percent * nrow(predictors_bg),
-                                  replace = FALSE)] <- "Training"
-  predictors_bg$Data_Split[is.na(predictors_bg$Data_Split)] <- "Evaluation"
+  occ_temp_sd <- data.frame(raster::extract(predictors[[11]], occ)) %>%
+    cbind(st_coordinates(occ) %>% as.data.frame()) %>%
+    setNames(c("temp_sd","longitude","latitude"))
+  bg_temp_sd <- data.frame(raster::extract(predictors[[11]], bg)) %>%
+    cbind(st_coordinates(bg) %>% as.data.frame()) %>%
+    setNames(c("temp_sd","longitude","latitude"))
   
   
   #------------------------------------------------------
-  # Rename columns and reorder
+  # Save extracted temperature mean and SD dataframes
   #------------------------------------------------------
-  colnames(predictors_occ)[12] <- "Species"
-  colnames(predictors_occ)[13] <- "Centroid_Longitude"
-  colnames(predictors_occ)[14] <- "Centroid_Latitude"
-  colnames(predictors_occ)[15] <- "Activity_Season"
-  colnames(predictors_occ)[16] <- "Occ1_or_Bg0"
-  colnames(predictors_bg)[12] <- "Species"
-  colnames(predictors_bg)[13] <- "Centroid_Longitude"
-  colnames(predictors_bg)[14] <- "Centroid_Latitude"
-  colnames(predictors_bg)[15] <- "Activity_Season"
-  colnames(predictors_bg)[16] <- "Occ1_or_Bg0"
+  occ_temp_mean_list %<>% c(list(occ_temp_mean))
+  bg_temp_mean_list %<>% c(list(bg_temp_mean))
+  occ_temp_sd_list %<>% c(list(occ_temp_sd))
+  bg_temp_sd_list %<>% c(list(bg_temp_sd))
   
-  predictors_occ %<>% .[,c(12,15:17,13:14,1:11)]
-  predictors_bg %<>% .[,c(12,15:17,13:14,1:11)]
-  
-  
-  #------------------------------------------------------
-  # Merge dataframes from occ and bg
-  #------------------------------------------------------
-  predictors_all <- rbind(predictors_occ, predictors_bg)
-  sdm_data[[i]] <- predictors_all
- 
-  
-  #------------------------------------------------------
-  # Record the train-eval metadata for occ and bg
-  #------------------------------------------------------
-  traineval_metadata[[1]][[i]] <- SpeciesOfInterest_Names[[i]]
-  traineval_metadata[[2]][[i]] <- ActivitySeason_Type[[i]]
-  traineval_metadata[[3]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Training",
-                                                                 Occ1_or_Bg0 == "1"))
-  traineval_metadata[[4]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Training",
-                                                                 Occ1_or_Bg0 == "0"))
-  traineval_metadata[[5]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Evaluation",
-                                                                 Occ1_or_Bg0 == "1"))
-  traineval_metadata[[6]][[i]] <- nrow(predictors_all %>% filter(Data_Split == "Evaluation",
-                                                                 Occ1_or_Bg0 == "0"))
-  traineval_metadata[[7]][[i]] <- traineval_metadata[[3]][[i]] + traineval_metadata[[5]][[i]]
-  traineval_metadata[[8]][[i]] <- traineval_metadata[[4]][[i]] + traineval_metadata[[6]][[i]]
-  
-  toc <- Sys.time()
-  toc - tic
 }
 
 
 
 #------------------------------------------------------
-## STEP 3: FORMAT AND EXPORT THE ANALYSIS DATASET ##
+## THERMAL BREADTH FIGURES ##
 #------------------------------------------------------
-sdm_data_all_species <- data.frame()
-
-for(i in 1:length(sdm_data)) {
-  print(paste0("-- Step 3: Formatting and exporting raster covariate data and analysis dataset for ", SpeciesOfInterest_Names[[i]]," --"))
+for(i in 1:length(SpeciesOfInterest_Names)) {
+  occ_temp_mean <- occ_temp_mean_list[[i]] %>% mutate(set = "Occurrence")
+  bg_temp_mean <- bg_temp_mean_list[[i]] %>% mutate(set = "Background")
+  temp_mean_df <- rbind(occ_temp_mean, bg_temp_mean)
   
-  #------------------------------------------------------
-  # Rename the columns of the dataframe and merge before exporting the .csv
-  # {PhotoASTM, PrecipASTM, and TAM} = TAM in the .csv
-  # {PhotoASTSD, PrecipASTSD, and TASD} = TASD in the .csv
-  #------------------------------------------------------
-  colnames(sdm_data[[i]]) <- c("Species","Activity_Season","Occ1_or_Bg0","Data_Split","Centroid_Longitude","Centroid_Latitude",
-                              "CD","EVIM","EVISD","FC","HPD","PDQ","PWQ","SW","WS","TAM","TASD")
+  occ_temp_sd <- occ_temp_sd_list[[i]] %>% mutate(set = "Occurrence")
+  bg_temp_sd <- bg_temp_sd_list[[i]] %>% mutate(set = "Background")
+  temp_sd_df <- rbind(occ_temp_sd, bg_temp_sd)
   
   
   #------------------------------------------------------
-  # Merge all species' raster covariate data
+  # Histograms
   #------------------------------------------------------
-  sdm_data_all_species %<>% rbind(sdm_data[[i]])
+  gg_hist_mean <- ggplot(temp_mean_df, aes(x = temp_mean, fill = set)) +
+    geom_histogram(alpha = 0.6, position = "identity") +
+    xlab("Temperature Mean (°C)") +
+    ylab("Count") +
+    theme_bw() +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
+    labs(fill = "Set")
+  
+  gg_hist_sd <- ggplot(temp_sd_df, aes(x = temp_sd, fill = set)) +
+    geom_histogram(alpha = 0.6, position = "identity") +
+    xlab("Temperature Standard Deviation (°C)") +
+    ylab("Count") +
+    theme_bw() +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
+    labs(fill = "Set")
+  
+  
+  #------------------------------------------------------
+  # Boxplots
+  #------------------------------------------------------
+  gg_boxplot_mean <- ggplot(temp_mean_df, aes(x = set, y = temp_mean, fill = set)) +
+    geom_boxplot(alpha = 0.7) +
+    xlab("Set") +
+    ylab("Temperature Mean (°C)") +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (Mean)")) +
+    labs(fill = "Set") +
+    theme_bw() +
+    coord_flip()
+  
+  gg_boxplot_sd <- ggplot(temp_sd_df, aes(x = set, y = temp_sd, fill = set)) +
+    geom_boxplot(alpha = 0.7) +
+    xlab("Set") +
+    ylab("Temperature Standard Deviation (°C)") +
+    ggtitle(paste0(SpeciesOfInterest_Names[[i]],": Thermal Breadth (SD)")) +
+    labs(fill = "Set") +
+    theme_bw() +
+    coord_flip()
+  
+  
+  #------------------------------------------------------
+  # Combined plots
+  #------------------------------------------------------
+  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Temp Mean.pdf")
+  pdf(save_name)
+  grid.arrange(gg_hist_mean, gg_boxplot_mean + theme(plot.title = element_blank()), nrow=2)
+  dev.off()
+  
+  save_name <- paste0("Thermal Breadth Check Figures/",SpeciesOfInterest_Names[[i]]," - Temp SD.pdf")
+  pdf(save_name)
+  grid.arrange(gg_hist_sd, gg_boxplot_sd + theme(plot.title = element_blank()), nrow=2)
+  dev.off()
+  
 }
-
-
-#------------------------------------------------------
-# Export .csv files
-#------------------------------------------------------
-write.csv(traineval_metadata, file = "Metadata/Train Eval Metadata by Species.csv", row.names=FALSE)
-write.csv(sdm_data_all_species, file = "Analysis_Dataset/SDM_Data.csv", row.names=FALSE)
-print(paste0("-- Completed extraction of the analysis dataset for all species --"))
 
 

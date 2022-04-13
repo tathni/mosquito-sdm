@@ -31,7 +31,7 @@ Mosquitoes_SpeciesOfInterest <- read.csv("GBIF_Datasets_Cleaned/Mosquitoes_Speci
 
 
 #------------------------------------------------------
-## BINARY CHECKS ##
+## BINARY RASTER CHECKS ##
 #------------------------------------------------------
 #------------------------------------------------------
 # Initialize and process binary rasters, where 0 = value, 1 = NA or missing value
@@ -76,7 +76,7 @@ dev.off()
 
 
 #------------------------------------------------------
-## PAIRS CORRELATION PLOT ##
+## PAIRS CORRELATION COVARIATES ##
 #------------------------------------------------------
 #------------------------------------------------------
 # Acquire occurrence cell centroids
@@ -117,7 +117,7 @@ raster_10k <- raster_15k %>% na.omit() %>%
 #------------------------------------------------------
 # Visualize pairs plot
 #------------------------------------------------------
-pdf("Environmental Predictors Checks/Pairs Correlation Covariates.pdf", width=10, height=8)
+pdf("Raster_Summary_Figures/Pairs Correlation Covariates.pdf", width=10, height=8)
 corrplot(cor(raster_10k),
          method = "color",
          addCoef.col = "black",

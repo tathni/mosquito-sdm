@@ -61,7 +61,7 @@ if(activity_ssn == FALSE) {
 # Processing for activity season rasters
 #------------------------------------------------------
 if(activity_ssn == TRUE) {
-  rasterNames <- c("PhotoAS_LastDay","PhotoAS_Length","PhotoAS_StartDay","PrecipAS_LastDay","PrecipAS_Length","PrecipAS_StartDay")
+  rasterNames <- c("PhotoAS_FirstDay","PhotoAS_LastDay","PhotoAS_Length","PrecipAS_FirstDay","PrecipAS_LastDay","PrecipAS_Length")
   inputPredictors %<>% setNames(rasterNames)
   
   #------------------------------------------------------

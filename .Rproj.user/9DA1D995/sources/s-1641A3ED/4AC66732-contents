@@ -1,0 +1,34 @@
+
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+
+test <- data.frame(c("Wt","R181C","R181C (Grp)","Del",
+                     "Wt","R181C","R181C (Grp)","Del"),
+                   c(100,81.7,93.4,0.2,
+                     100,100.6,96.45,0.2),
+                   c("30 C", "30 C", "30 C", "30 C",
+                     "36 C", "36 C", "36 C","36 C"))
+colnames(test) <- c("Mutant","Bgal","Temperature")
+
+test$Mutant %<>% factor(levels = c("Wt","R181C", "R181C (Grp)", "Del"))
+
+mean30 <- 93.4
+mean36 <- 96.45
+std_dev30 <- sqrt(mean((81.7 - mean30)^2, (105.1 - mean30)^2))
+std_dev36 <-sqrt(mean((100.6 - mean36)^2, (92.3 - mean36)^2))
+
+test$SD <- c(0,0,std_dev30,0,
+             0,0,std_dev36, 0)
+  
+
+ggplot(test, aes(Mutant, Bgal)) +
+  facet_wrap(~Temperature, switch = "x", scales = "free_x", nrow = 1) +
+  geom_bar(stat = "identity", aes(fill = Temperature)) +
+  geom_errorbar(aes(ymin=Bgal-SD, ymax=Bgal+SD), width=.2) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  theme(text=element_text(family="Calibri", size=11)) + 
+  xlab("") +
+  ylab("B-gal Activity (% wt)")
+

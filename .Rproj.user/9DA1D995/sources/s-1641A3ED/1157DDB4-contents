@@ -26,7 +26,7 @@ predictors_preStack <- alply(list.files("Environmental Predictors Merged",
                                           rast <- raster(file)
                                           return(rast)
                                         })
-rasterNames <- c("CD","EVIM","EVISD","FC","HPD","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
+rasterNames <- c("CD","EVIM","EVISD","FC","HPD_Log","PDQ","PhotoASTM","PhotoASTSD","PrecipASTM","PrecipASTSD","PWQ","SW","TAM","TASD","WS")
 predictors_preStack %<>% setNames(rasterNames)
 
 predictors_yearRound <- predictors_preStack[c(1:6,11:12,15,13:14)] %>% stack()
@@ -116,14 +116,14 @@ rasterNames_spaced <- c("Cattle Density (animals per 1 sq. km)",
                         "Forest Cover (%)",
                         "Human Population Density (persons per 1 sq. km)",
                         "Precipitation of the Driest Quarter (mm)",
-                        "Photoperiod Activity Season - Temperature Mean (캜)",
-                        "Photoperiod Activity Season - Temperature Standard Deviation (캜)",
-                        "Precipitation Activity Season - Temperature Mean (캜)",
-                        "Precipitation Activity Season - Temperature Standard Deviation (캜)",
+                        "Photoperiod Activity Season - Temperature Mean (째C)",
+                        "Photoperiod Activity Season - Temperature Standard Deviation (째C)",
+                        "Precipitation Activity Season - Temperature Mean (째C)",
+                        "Precipitation Activity Season - Temperature Standard Deviation (째C)",
                         "Precipitation of the Wettest Quarter (mm)",
                         "Surface Water Seasonality (# of months)",
-                        "Temperature Annual Mean (캜)",
-                        "Temperature Annual Standard Deviation (캜)",
+                        "Temperature Annual Mean (째C)",
+                        "Temperature Annual Standard Deviation (째C)",
                         "Wind Speed (m/s)")
 
 #------------------------------------------------------

@@ -33,14 +33,14 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
 # Load in lists and ecoregions
 #------------------------------------------------------
 tic <- Sys.time()
-speciesList <- c("AedesAegypti",
-                 "AedesAlbopictus",
-                 "AnophelesGambiae",
-                 "AnophelesStephensi",
-                 "CulexAnnulirostris",
-                 "CulexPipiens",
-                 "CulexQuinquefasciatus",
-                 "CulexTarsalis")
+SpeciesOfInterest_NoSpace <- c("AedesAegypti",
+                               "AedesAlbopictus",
+                               "AnophelesGambiae",
+                               "AnophelesStephensi",
+                               "CulexAnnulirostris",
+                               "CulexPipiens",
+                               "CulexQuinquefasciatus",
+                               "CulexTarsalis")
 
 SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Aedes albopictus",
@@ -163,8 +163,8 @@ for(i in species_inds) {
   #------------------------------------------------------
   # Acquire occurrence points
   #------------------------------------------------------
-  thisSpecies <- filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[i])
-  paste0("The species of interest is: ", SpeciesOfInterest_Names[i])
+  thisSpecies <- filter(Mosquitoes_SpeciesOfInterest, species == SpeciesOfInterest_Names[[i]])
+  paste0("The species of interest is: ", SpeciesOfInterest_Names[[i]])
   occGPS <- dplyr::select(thisSpecies, c(decimalLongitude, decimalLatitude))
   
   occGPS_sf <- st_as_sf(occGPS, coords = c("decimalLongitude", "decimalLatitude"), 
@@ -183,7 +183,7 @@ for(i in species_inds) {
   st_crs(occGPS_buffered) <- "+proj=longlat +datum=WGS84 +no_defs" 
   
   toc <- Sys.time()
-  print(paste0("Buffered the occurrence points for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Buffered the occurrence points for ",SpeciesOfInterest_Names[[i]]))
   print(toc - tic)
   
   
@@ -216,7 +216,7 @@ for(i in species_inds) {
   ecoregion_intersected_inds <- ecoregion_inds %>% Reduce("c", .) %>% unique
   
   toc <- Sys.time()
-  print(paste0("Intersected ecoregions with buffered points and acquired indices for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Intersected ecoregions with buffered points and acquired indices for ",SpeciesOfInterest_Names[[i]]))
   print(toc - tic)
   
   
@@ -224,10 +224,10 @@ for(i in species_inds) {
   # Save indices
   #------------------------------------------------------
   tic <- Sys.time()
-  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
+  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",SpeciesOfInterest_NoSpace[i],".RDS"))
   
   toc <- Sys.time()
-  print(paste0("Saved indices for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Saved indices for ",SpeciesOfInterest_Names[[i]]))
   print(toc - tic)
   
   
@@ -239,7 +239,7 @@ for(i in species_inds) {
     as_Spatial %>% gBuffer(byid = FALSE, width = 0) %>% st_as_sf
   
   toc <- Sys.time()
-  print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Selected and unioned the intersected ecoregions for ",SpeciesOfInterest_Names[[i]]))
   print(toc - tic)
   
   
@@ -247,12 +247,12 @@ for(i in species_inds) {
   # Save ecoregion shapefiles and buffered points
   #------------------------------------------------------
   tic <- Sys.time()
-  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",speciesList[i],".RDS"))
-  saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",speciesList[i],".RDS"))
-  saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",speciesList[i],".RDS"))
+  saveRDS(ecoregion_intersected_inds, paste0("Ecoregion_Outputs/Indices_",SpeciesOfInterest_NoSpace[i],".RDS"))
+  saveRDS(ecoregion_cut, paste0("Ecoregion_Outputs/Shapefile_",SpeciesOfInterest_NoSpace[i],".RDS"))
+  saveRDS(occGPS_sf, paste0("Ecoregion_Outputs/BufferedPoints_",SpeciesOfInterest_NoSpace[i],".RDS"))
   
   toc <- Sys.time()
-  print(paste0("Saved ecoregion shapefiles and buffered points for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Saved ecoregion shapefiles and buffered points for ",SpeciesOfInterest_Names[[i]]))
   print(toc - tic)
   
   
@@ -260,22 +260,22 @@ for(i in species_inds) {
   # Save ecoregion maps, with and without points plotted
   #------------------------------------------------------
   tic <- Sys.time()
-  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],".png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",SpeciesOfInterest_NoSpace[i],".png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   dev.off()
   
-  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Dots.png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",SpeciesOfInterest_NoSpace[i],"_Dots.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_sf), col="red", add=T)
   dev.off()
   
-  png(paste0("Ecoregion_Outputs/Ecoregions_",speciesList[i],"_Buffered.png"), width=1000, height=1000)
+  png(paste0("Ecoregion_Outputs/Ecoregions_",SpeciesOfInterest_NoSpace[i],"_Buffered.png"), width=1000, height=1000)
   plot(st_geometry(ecoregion_cut))
   plot(st_geometry(occGPS_buffered), col="red", add=T)
   dev.off()
   
   toc <- Sys.time()
-  print(paste0("Saved ecoregion maps for ",SpeciesOfInterest_Names[i]))
+  print(paste0("Saved ecoregion maps for ",SpeciesOfInterest_Names[[i]]))
   print(toc - tic)
 
 }
