@@ -265,13 +265,13 @@ for(i in species_inds) {
   
   #### ROC DATAFRAME
   train_roc <- roc(y_train, pred_train)
-  train_roc_df <- data.frame(#set = rep("train", length(train_roc$sensitivities)),
+  train_roc_df <- data.frame(set = rep("train", length(train_roc$sensitivities)),
                              sensitivities = train_roc$sensitivities,
                              specificities =  train_roc$specificities, 
                              iteration = rep(j, length(train_roc$sensitivities)))
   
   eval_roc <- roc(y_eval, pred_eval)
-  eval_roc_df <- data.frame(#set = rep("eval", length(eval_roc$sensitivities)),
+  eval_roc_df <- data.frame(set = rep("eval", length(eval_roc$sensitivities)),
     sensitivities = eval_roc$sensitivities,
     specificities =  eval_roc$specificities, 
     iteration = rep(j, length(eval_roc$sensitivities)))
@@ -342,38 +342,38 @@ for(i in species_inds) {
   ######### hyper params
   bayes_opt_params_species$species <- SpeciesOfInterest_Underscore[[i]]
   bayes_opt_params_all <- rbind(bayes_opt_params_all, bayes_opt_params_species)
-  saveRDS(bayes_opt_params_all, "bayes_optimization_hyperparameters.rds")
   
   ######## predictions
   predictions_species$species <- SpeciesOfInterest_Underscore[[i]]
   sdm_predictions_all <- rbind(sdm_predictions_all, predictions_species)
-  saveRDS(sdm_predictions_all, "SDM_Data_Predictions.RDS")
-  
+
   ######## auc
   auc_species$species <- SpeciesOfInterest_Underscore[[i]]
   sdm_auc_all <- rbind(sdm_auc_all, auc_species)
-  saveRDS(sdm_auc_all, "AUC.RDS")
-  
+
   ######## roc
   roc_species$species <- SpeciesOfInterest_Underscore[[i]]
   sdm_roc_all <- rbind(sdm_roc_all, roc_species)
-  saveRDS(sdm_roc_all, "ROC_Preliminary_DF.RDS")
-  
+
   ######## var imp
   vimp_species$species <- SpeciesOfInterest_Underscore[[i]]
   vimp_all <- rbind(vimp_all, vimp_species)
-  saveRDS(vimp_all, "vimp_dataframe.RDS")
-  
+
   ####### univariate PDP
   uni_pdp_species$species <- SpeciesOfInterest_Underscore[[i]]
   uni_pdp_all <- rbind(uni_pdp_all, uni_pdp_species)
-  saveRDS(uni_pdp_all, "univariate_pdp_dataframe.RDS")
-  
+
   ####### bivariate PDP
   bivar_pdp_species$species <- SpeciesOfInterest_Underscore[[i]]
   bivar_pdp_all <- rbind(bivar_pdp_all, bivar_pdp_species)
-  saveRDS(bivar_pdp_all, "bivariate_pdp_dataframe.RDS")
-  
+
 }
 
+saveRDS(bayes_opt_params_all, "bayes_optimization_hyperparameters.rds")
+saveRDS(sdm_predictions_all, "SDM_Data_Predictions.RDS")
+saveRDS(sdm_auc_all, "AUC.RDS")
+saveRDS(sdm_roc_all, "ROC_Preliminary_DF.RDS")
+saveRDS(vimp_all, "vimp_dataframe.RDS")
+saveRDS(uni_pdp_all, "univariate_pdp_dataframe.RDS")
+saveRDS(bivar_pdp_all, "bivariate_pdp_dataframe.RDS")
 
