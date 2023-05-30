@@ -138,6 +138,8 @@ for(i in species_inds) {
   rows <- sample(nrow(species_data))
   analysis_data <- species_data[rows, ]
   
+  # save indices
+  
   ##create test & train split
   train_index <- createDataPartition(analysis_data[, 3], p = .8, list = FALSE)
   train_data <- species_data[train_index,]
@@ -154,7 +156,7 @@ for(i in species_inds) {
   # Runs CV, generates a list of test loglosses averaged over all folds, and picks the logloss from the best iteration
   #------------------------------------------------------
   xgb_opt_fun <- function(eta, gamma, max_depth, subsample, colsample_bytree,
-                          min_child_weight, xgb_dmatrix, rounds_max = 100, nfold = 5, nthread = 2) {
+                          min_child_weight, xgb_dmatrix, rounds_max = 100, nfold = 5) {
     set.seed(seedNum)
     
     xgb_cv <- xgb.cv(
@@ -170,7 +172,6 @@ for(i in species_inds) {
                     eval_metric = "logloss"),
       data = xgb_dmatrix,
       nrounds = rounds_max,
-      nthread = nthread,
       nfold = nfold,
       early_stopping_rounds = 10,
       print_every_n = 20,
