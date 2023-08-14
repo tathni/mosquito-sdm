@@ -163,15 +163,15 @@ var diapauseMask = ee.ImageCollection.fromImages(daylengths).toBands().gte(diapa
 
 
 
-// Outer loop for each day, calculate avg temp on that day over the 20 year period inner loop, and then apply the mask
-// If y is multiple of 4, and d = 60 (feb 29 leap day), d=d+1 ... built into the temps averaging also
-// This results in the avg temp moqsuitoes are experiencing on the days that they are, on average, active
-// In other words, an avg activity ssn mask applied to an avg temp by day for 20-year image collection
+// We calculate avg temp across that given year (inner loop), and then average across the 20 year study period (outer loop)
+// If y is multiple of 4, and d = 60 (feb 29 leap day), d=d+1 ... built into the temps averaging 
+// Our use of an activity season mask results in the avg temp mosquitoes are experiencing on the days that they are, on average, active
+// In other words, an avg activity ssn mask is applied to calculate a yearly avg of daily temps for a 20-year study period, for example
 
 
 // Calculation of temperature annual mean (TAM), no activity season mask applied
-var TAM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Loop over each day of year
-  return ee.ImageCollection.fromImages(years.map(function(y){ // Loop over each of the 20 years
+var TAM = ee.ImageCollection.fromImages(years.map(function(y){ // Outer loop over each of the 20 years
+  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Inner loop over each day of a given year
     if(y % 4 === 0 && d >= 59) { // Assumption: skip Feb. 29 on leap years
       d = d + 1;
     }
@@ -188,8 +188,8 @@ var TAM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d)
 
 
 // Calculation of temperature annual standard deviation (TASD), no activity season mask applied
-var TASD = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Loop over each day of year
-  return ee.ImageCollection.fromImages(years.map(function(y){ // Loop over each of the 20 years
+var TASD = ee.ImageCollection.fromImages(years.map(function(y){ // Outer loop over each of the 20 years
+  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Inner loop over each day of a given year
     if(y % 4 === 0 && d >= 59) { // Assumption: skip Feb. 29 on leap years
       d = d + 1;
     }
@@ -207,8 +207,8 @@ var TASD = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d
 
 
 // Calculation of photoperiod activity season temperature mean (PhotoASTM)
-var PhotoASTM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Loop over each day of year
-  return ee.ImageCollection.fromImages(years.map(function(y){ // Loop over each of the 20 years
+var PhotoASTM = ee.ImageCollection.fromImages(years.map(function(y){ // Outer loop over each of the 20 years
+  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Inner loop over each day of a given year
     if(y % 4 === 0 && d >= 59) { // Assumption: skip Feb. 29 on leap years
       d = d + 1;
     }
@@ -220,13 +220,14 @@ var PhotoASTM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(funct
                .resample("bilinear")
                .reproject("EPSG:4326", null, 1000);
   })).toBands()
+     .updateMask(diapauseMask)
      .reduce(ee.Reducer.mean())
-})).toBands().updateMask(diapauseMask).reduce(ee.Reducer.mean());
+})).toBands().reduce(ee.Reducer.mean());
 
 
 // Calculation of photoperiod activity season temperature standard deviation (PhotoASTSD)
-var PhotoASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Loop over each day of year
-  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Loop over each of the 20 years
+var PhotoASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Outer loop over each of the 20 years
+  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Inner loop over each day of a given year
     if(y % 4 === 0 && d >= 59) { // Assumption: skip Feb. 29 on leap years
       d = d + 1;
     }
@@ -240,14 +241,14 @@ var PhotoASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Loop ov
   })).toBands()
      .updateMask(diapauseMask)
      .reduce(ee.Reducer.stdDev()) // Variation across all days in a given year
-})).toBands().reduce(ee.Reducer.mean()); // Average the daily variations for every year
+})).toBands().reduce(ee.Reducer.mean()); // Average the daily variations across the 20 year period
 
 
 
 
 // Calculation of precipitation activity season temperature mean (PrecipASTM)
-var PrecipASTM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Loop over each day of year
-  return ee.ImageCollection.fromImages(years.map(function(y){ // Loop over each of the 20 years
+var PrecipASTM = ee.ImageCollection.fromImages(years.map(function(y){ // Outer loop over each of the 20 years
+  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Inner loop over each day of a given year
     if(y % 4 === 0 && d >= 59) { // Assumption: skip Feb. 29 on leap years
       d = d + 1;
     }
@@ -256,19 +257,19 @@ var PrecipASTM = ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(func
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
+               .resample("bilinear")
+               .reproject("EPSG:4326", null, 1000);
   })).toBands()
+     .updateMask(precipMask)
      .reduce(ee.Reducer.mean())
-})).toBands()
-   .updateMask(precipMask)
-   .reduce(ee.Reducer.mean())
-   .resample("bilinear")
-   .reproject("EPSG:4326", null, 1000);
+})).toBands().reduce(ee.Reducer.mean())
+   
 
 
 
 // Calculation of precipitation activity season temperature standard deviation (PrecipASTSD)
-var PrecipASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Loop over each day of year
-  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Loop over each of the 20 years
+var PrecipASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Outer loop over each of the 20 years
+  return ee.ImageCollection.fromImages(ee.List.sequence(0, 364).map(function(d){ // Inner loop over each day of a given year
     if(y % 4 === 0 && d >= 59) { // Assumption: skip Feb. 29 on leap years
       d = d + 1;
     }
@@ -277,14 +278,14 @@ var PrecipASTSD = ee.ImageCollection.fromImages(years.map(function(y){ // Loop o
                .select(["mean_2m_air_temperature"])
                .toBands()
                .add(ee.Image.constant(-273.15))
+               .resample("bilinear")
+               .reproject("EPSG:4326", null, 1000);
   })).toBands()
      .updateMask(precipMask)
      .reduce(ee.Reducer.stdDev()) // Variation across all days in a given year
 })).toBands()
-   .reduce(ee.Reducer.mean())
-   .resample("bilinear")
-   .reproject("EPSG:4326", null, 1000); // Average the daily variations for every year
-
+   .reduce(ee.Reducer.mean()) // Average the daily variations across the 20 year study period
+    
 
 
 
