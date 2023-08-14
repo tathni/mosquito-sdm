@@ -5,7 +5,7 @@
 # Description: Create filter masks for landmass and predictor sum non-NA
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------

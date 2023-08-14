@@ -6,7 +6,7 @@
 # Assess correlation between variables using a pairs analysis
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------

@@ -5,7 +5,7 @@
 # Description: Clean the raw GBIF, Atlas of Living Australia (ALA), Sinka, and Wiebe species occurrence data
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------
@@ -19,7 +19,6 @@ Mosquitoes_SpeciesOfInterest_Raw <- rbind(
   read.csv("GBIF Datasets Raw/AedesAlbopictus_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/AnophelesGambiae_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/AnophelesStephensi_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
-  read.csv("GBIF Datasets Raw/CulexAnnulirostris_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/CulexPipiens_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/CulexQuinquefasciatus_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F),
   read.csv("GBIF Datasets Raw/CulexTarsalis_Raw.csv", sep = "\t", header = T, encoding = "UTF-8", stringsAsFactors = F)
@@ -27,9 +26,8 @@ Mosquitoes_SpeciesOfInterest_Raw <- rbind(
 
 
 #------------------------------------------------------
-# For species with low occurrences, bulk up species with fewest occurrences from Atlas of Living Australia (ALA), Sinka, and Wiebe
+# For species with low occurrences, bulk up species with fewest occurrences from Sinka and Wiebe
 #------------------------------------------------------
-Mosquitoes_ALA_Raw <- read.csv("GBIF Datasets Raw/CulexAnnulirostris_ALA.csv", sep = ",", header = T, encoding = "UTF-8", stringsAsFactors = F)
 Mosquitoes_Sinka_Raw <- read.csv("GBIF Datasets Raw/AnophelesStephensi_Sinka2020.csv", sep = ",", header = T, stringsAsFactors = F)
 Mosquitoes_Wiebe_Raw <- read_excel("GBIF Datasets Raw/AnophelesGambiae_Wiebe2017.xlsx", sheet=7)
 
@@ -86,52 +84,6 @@ Mosquitoes_SpeciesOfInterest <- Mosquitoes_SpeciesOfInterest[!Mosquitoes_Species
 soi_coord_decplace <- Mosquitoes_SpeciesOfInterest
 
 Mosquitoes_SpeciesOfInterest %<>% mutate(source = "GBIF")
-
-
-#------------------------------------------------------
-# Clean the Atlas of Living Australia dataset for Culex annulirostris
-#------------------------------------------------------
-Mosquitoes_ALA <- Mosquitoes_ALA_Raw %>%
-  filter(!species == "",
-         !is.na(decimalLongitude), !is.na(decimalLatitude))
-annuli_ala_raw <- Mosquitoes_ALA
-
-Mosquitoes_ALA %<>%
-  filter(basisOfRecord != "FOSSIL_SPECIMEN")
-annuli_ala_nonfossil_bor <- Mosquitoes_ALA
-
-Mosquitoes_ALA %<>%
-  filter(basisOfRecord != "UNKNOWN")
-annuli_ala_nonunknown_bor <- Mosquitoes_ALA
-
-Mosquitoes_ALA %<>%
-  filter(year >= 2000 & year <= 2019)
-annuli_ala_yearrange <- Mosquitoes_ALA
-
-Mosquitoes_ALA %<>%
-  filter(is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000)
-annuli_ala_coord_reported <- Mosquitoes_ALA
-
-Mosquitoes_ALA %<>%
-  dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, decimalLongitude, decimalLatitude, country, year, month, rowNum)
-
-indexRows <- list()
-counter <- 1
-for(i in 1:nrow(Mosquitoes_ALA)) {
-  if(decimalNums(Mosquitoes_ALA$decimalLongitude[[i]]) < 2 &
-     decimalNums(Mosquitoes_ALA$decimalLatitude[[i]]) < 2) {
-    indexRows[[counter]] <- i
-    counter <- counter+1
-  }
-}
-
-Mosquitoes_ALA <- Mosquitoes_ALA[!Mosquitoes_ALA$rowNum %in% indexRows, ] %>%
-  dplyr::select(-rowNum) %>%
-  dplyr::select(c(1:6))
-annuli_ala_coord_decplace <- Mosquitoes_ALA
-
-Mosquitoes_ALA %<>% mutate(source = "Atlas of Living Australia")
 
 
 #------------------------------------------------------
@@ -298,18 +250,6 @@ filter_metadata_pre[[4]][[4]] <- nrow(soi_nonunknown_bor %>% filter(species == "
 filter_metadata_pre[[5]][[4]] <- nrow(soi_yearrange %>% filter(species == "Anopheles stephensi")) + nrow(sinka_yearrange)
 filter_metadata_pre[[6]][[4]] <- nrow(soi_coord_reported %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_reported)
 filter_metadata_pre[[7]][[4]] <- nrow(soi_coord_decplace %>% filter(species == "Anopheles stephensi")) + nrow(sinka_coord_decplace)
-
-
-#------------------------------------------------------
-# Culex annulirostris
-#------------------------------------------------------
-filter_metadata_pre[[1]][[5]] <- "Culex annulirostris"
-filter_metadata_pre[[2]][[5]] <- nrow(soi_raw %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_raw)
-filter_metadata_pre[[3]][[5]] <- nrow(soi_nonfossil_bor %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_nonfossil_bor)
-filter_metadata_pre[[4]][[5]] <- nrow(soi_nonunknown_bor %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_nonunknown_bor)
-filter_metadata_pre[[5]][[5]] <- nrow(soi_yearrange %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_yearrange)
-filter_metadata_pre[[6]][[5]] <- nrow(soi_coord_reported %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_coord_reported)
-filter_metadata_pre[[7]][[5]] <- nrow(soi_coord_decplace %>% filter(species == "Culex annulirostris")) + nrow(annuli_ala_coord_decplace)
 
 
 #------------------------------------------------------

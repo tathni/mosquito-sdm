@@ -5,7 +5,7 @@
 # Description: Compare correlation of ERA5 and CHELSA temperature datasets for Jan and June, 1981-2010 aggregated period
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------
@@ -87,8 +87,8 @@ ggplot(era5_chelsa_jan_june, aes(x = ERA5_Jan, y = CHELSA_Jan)) +
   theme_bw() +
   labs(title = "January, 1981-2010",
        subtitle = "10k Random Occurrences",
-       x = "ERA5 Temperature (°C)",
-       y = "CHELSA Temperature (°C)")
+       x = "ERA5 Temperature (ï¿½C)",
+       y = "CHELSA Temperature (ï¿½C)")
 dev.off()
 
 pdf("CHELSA Data/ERA5_CHELSA_June_Pairs.pdf")
@@ -98,8 +98,8 @@ ggplot(era5_chelsa_jan_june, aes(x = ERA5_June, y = CHELSA_June)) +
   theme_bw() +
   labs(title = "June, 1981-2010",
        subtitle = "10k Random Occurrences",
-       x = "ERA5 Temperature (°C)",
-       y = "CHELSA Temperature (°C)")
+       x = "ERA5 Temperature (ï¿½C)",
+       y = "CHELSA Temperature (ï¿½C)")
 dev.off()
 
 

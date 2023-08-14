@@ -5,7 +5,7 @@
 # Description: Merge all individual Google Earth Engine rasters
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 activity_ssn = FALSE  # Merging environmental predictors or activity season rasters?
 
 

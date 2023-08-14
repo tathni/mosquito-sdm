@@ -23,9 +23,8 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
   species_inds <- as.numeric(args[1]) 
   
 } else {
-  source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+  source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
   usable.cores <- 2
-  species_inds <- 1:8 
 }
 
 

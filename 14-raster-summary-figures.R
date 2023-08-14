@@ -5,7 +5,7 @@
 # Description: Produce plots and figures from the extracted rasters in the analysis dataset
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------
@@ -44,7 +44,7 @@ ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
                                  return(shapefile)
                                }) %>%
   setNames(c("Ae_Aegypti","Ae_Albopictus","An_Gambiae","An_Stephensi",
-             "Cx_Annuli","Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
+             "Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
 
 
 
@@ -52,6 +52,18 @@ ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
 ## 1. SPECIES OCCURRENCE AND BACKGROUND MAPS ##
 #------------------------------------------------------
 species_maps <- list()
+
+data(world)
+world <- world %>% dplyr::filter(!name_long == "Antarctica")
+africa <- world[world$continent == "Africa",]
+oceania <- world[world$continent == "Oceania",]
+europe <- world[world$continent == "Europe",]
+south_america <- world[world$continent == "South America",]
+north_america <- world[world$continent == "North America",]
+asia <- world[world$continent == "Asia",]
+
+species_continents <- list(world, world, rbind(africa,asia), rbind(africa,asia), rbind(north_america, africa, europe, asia, oceania),
+                        world, north_america)
 
 for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
@@ -76,12 +88,11 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   # Plot occ and bg on ecoregion maps
   #------------------------------------------------------
-  world <- st_as_sf(wrld_simpl[wrld_simpl@data$UN!="10",]) %>% st_set_crs(my_crs)
-  
   species_plot <- ggplot() + 
-    geom_sf(data = ecoregions[[i]], color = "black", fill = "lightgrey", alpha = 0.5) +
-    geom_sf(data = occ, aes(color = "Occurrence"), size = 2, alpha = 0.7, show.legend = "point") + 
-    geom_sf(data = bg, aes(color = "Background"), size = 2, alpha = 0.4, show.legend = "point") + 
+    geom_sf(data = species_continents[[i]], color = NA, fill="lightgrey", alpha=0.3) +
+    geom_sf(data = ecoregions[[i]], color = "black", fill = "tan", alpha = 0.4) +
+    geom_sf(data = bg, aes(color = "Background"), size = 1.75, alpha = 0.3, show.legend = "point") + 
+    geom_sf(data = occ, aes(color = "Occurrence"), size = 1.75, alpha = 0.3, show.legend = "point") + 
     scale_color_manual(name = "Centroid",
                        values = c("Occurrence" = "#b80700", "Background" = "#003f91")) +
     theme_bw() +
@@ -95,11 +106,7 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
 # Save maps
 #------------------------------------------------------
 for(i in 1:length(species_maps)) {
-  species_plot <- species_maps[[i]]
-  save_name <- paste0("Raster_Summary_Figures/Species_Occurrence_Maps/",SpeciesOfInterest_Underscore[[i]],"_Occ_Bg_on_Ecoregion.pdf")
-  pdf(save_name)
-  species_plot
-  dev.off()
+  ggsave(species_maps[[i]], filename = paste(SpeciesOfInterest_Underscore[[i]],"_Occ_Bg_on_Ecoregion.pdf"), width=10,height=15)
 }
 
 
@@ -116,14 +123,14 @@ rasterNames_spaced <- c("Cattle Density (animals per 1 sq. km)",
                         "Forest Cover (%)",
                         "Human Population Density (persons per 1 sq. km)",
                         "Precipitation of the Driest Quarter (mm)",
-                        "Photoperiod Activity Season - Temperature Mean (°C)",
-                        "Photoperiod Activity Season - Temperature Standard Deviation (°C)",
-                        "Precipitation Activity Season - Temperature Mean (°C)",
-                        "Precipitation Activity Season - Temperature Standard Deviation (°C)",
+                        "Photoperiod Activity Season - Temperature Mean (?C)",
+                        "Photoperiod Activity Season - Temperature Standard Deviation (?C)",
+                        "Precipitation Activity Season - Temperature Mean (?C)",
+                        "Precipitation Activity Season - Temperature Standard Deviation (?C)",
                         "Precipitation of the Wettest Quarter (mm)",
                         "Surface Water Seasonality (# of months)",
-                        "Temperature Annual Mean (°C)",
-                        "Temperature Annual Standard Deviation (°C)",
+                        "Temperature Annual Mean (?C)",
+                        "Temperature Annual Standard Deviation (?C)",
                         "Wind Speed (m/s)")
 
 #------------------------------------------------------
@@ -180,7 +187,6 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
      SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
-     SpeciesOfInterest_Names[[i]] == "Culex annulirostris" |
      SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
     colnames(sdm_data)[16] <- "TAM"
     colnames(sdm_data)[17] <- "TASD"
@@ -414,12 +420,11 @@ samplingMaps <- alply(list.files("Sampling Range Maps",
                                })
 
 rasterNames <- c("AeAegpyti_SamplingMap","AeAlbopictus_SamplingMap","AnGambiae_SamplingMap","AnStephensi_SamplingMap",
-                 "CxAnnulirostris_SamplingMap","CxPipiens_SamplingMap","CxQuinquefasciatus_SamplingMap","CxTarsalis_SamplingMap")
+                 "CxPipiens_SamplingMap","CxQuinquefasciatus_SamplingMap","CxTarsalis_SamplingMap")
 rasterNames_spaced <- c("Aedes aegypti - Background Sampling Range",
                         "Aedes albopictus - Background Sampling Range",
                         "Anopheles gambiae - Background Sampling Range",
                         "Anopheles stephensi - Background Sampling Range",
-                        "Culex annulirostris - Background Sampling Range",
                         "Culex pipiens - Background Sampling Range",
                         "Culex quinquefasciatus - Background Sampling Range",
                         "Culex tarsalis - Background Sampling Range")
@@ -488,7 +493,7 @@ dev.off()
 #------------------------------------------------------
 set.seed(seedNum)
 temp_possibleBg <- Mosquitoes_AllBackground %>%
-  select(decimalLongitude, decimalLatitude) %>%
+  dplyr::select(decimalLongitude, decimalLatitude) %>%
   unique
 set.seed(seedNum)
 temp_possibleBg <- temp_possibleBg[sample(nrow(temp_possibleBg), 15000), ] # Over-sample to account for NA's
@@ -512,21 +517,19 @@ dev.off()
 #------------------------------------------------------
 # Partition data by individual species of interest for species occurrence plotting
 AedesAegypti <- filter(Mosquitoes_SpeciesOfInterest, species == "Aedes aegypti")
-AedesAegypti_Points <- AedesAegypti %>% select(decimalLongitude, decimalLatitude) %>% unique
+AedesAegypti_Points <- AedesAegypti %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 AedesAlbopictus <- filter(Mosquitoes_SpeciesOfInterest, species == "Aedes albopictus")
-AedesAlbopictus_Points <- AedesAlbopictus %>% select(decimalLongitude, decimalLatitude) %>% unique
+AedesAlbopictus_Points <- AedesAlbopictus %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 AnophelesGambiae <- filter(Mosquitoes_SpeciesOfInterest, species == "Anopheles gambiae")
-AnophelesGambiae_Points <- AnophelesGambiae %>% select(decimalLongitude, decimalLatitude) %>% unique
+AnophelesGambiae_Points <- AnophelesGambiae %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 # AnophelesStephensi <- filter(Mosquitoes_SpeciesOfInterest, species == "Anopheles stephensi")
-# AnophelesStephensi_Points <- AnophelesStephensi %>% select(decimalLongitude, decimalLatitude) %>% unique
-CulexAnnulirostris <- filter(Mosquitoes_SpeciesOfInterest, species == "Culex annulirostris")
-CulexAnnulirostris_Points <- CulexAnnulirostris %>% select(decimalLongitude, decimalLatitude) %>% unique
+# AnophelesStephensi_Points <- AnophelesStephensi %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 CulexPipiens <- filter(Mosquitoes_SpeciesOfInterest, species == "Culex pipiens")
-CulexPipiens_Points <- CulexPipiens %>% select(decimalLongitude, decimalLatitude) %>% unique
+CulexPipiens_Points <- CulexPipiens %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 CulexQuinquefasciatus <- filter(Mosquitoes_SpeciesOfInterest, species == "Culex quinquefasciatus")
-CulexQuinquefasciatus_Points <- CulexQuinquefasciatus %>% select(decimalLongitude, decimalLatitude) %>% unique
+CulexQuinquefasciatus_Points <- CulexQuinquefasciatus %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 CulexTarsalis <- filter(Mosquitoes_SpeciesOfInterest, species == "Culex tarsalis")
-CulexTarsalis_Points <- CulexTarsalis %>% select(decimalLongitude, decimalLatitude) %>% unique
+CulexTarsalis_Points <- CulexTarsalis %>% dplyr::select(decimalLongitude, decimalLatitude) %>% unique
 
 # Plotting species occurrences
 pdf("Species Occurrence Map.pdf")
@@ -538,13 +541,12 @@ points(AedesAegypti_Points, cex=0.05, col="grey30")
 points(AedesAlbopictus_Points, cex=0.05, col="firebrick1")
 points(AnophelesGambiae_Points, cex=0.05, col="#00ff00")
 # points(AnophelesStephensi_Points, cex=0.05, col="brown")
-points(CulexAnnulirostris_Points, cex=0.05, col="darkmagenta")
 points(CulexPipiens_Points, cex=0.05, col="darkgreen")
 points(CulexQuinquefasciatus_Points, cex=0.05, col="blue")
 points(CulexTarsalis_Points, cex=0.05, col="darkorange")
 
 legend(100, -80, c("Aedes aegypti","Aedes albopictus","Anopheles gambiae",
-                   "Culex annulirostris","Culex pipiens","Culex quinquefasciatus","Culex tarsalis"),
+                   "Culex pipiens","Culex quinquefasciatus","Culex tarsalis"),
        cex = 0.6, col=c("grey30","firebrick1","#00ff00","brown","darkmagenta","darkgreen","blue","darkorange"),
        pch = c(19,19,19,19,19,19,19),
        bg = "white")

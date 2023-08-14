@@ -26,7 +26,7 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
   options(scipen = 100000)
   
 } else {
-  source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+  source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 }
 
 
@@ -90,40 +90,6 @@ Background_GBIF %<>% mutate(source = "GBIF")
 
 print("Cleaned GBIF (Class Insecta) background")
 
-
-#------------------------------------------------------
-# Clean Atlas of Living Australia background for Culex annulirostris
-#------------------------------------------------------
-Background_ALA <- Background_ALA_Raw %>%
-  filter(!species == "" | (!genus == "" & !specificEpithet == ""),
-         !is.na(decimalLongitude),
-         !is.na(decimalLatitude),
-         basisOfRecord != "FOSSIL_SPECIMEN",
-         basisOfRecord != "UNKNOWN",
-         year >= 2000 & year <= 2019,
-         is.na(coordinateUncertaintyInMeters) | coordinateUncertaintyInMeters <= 1000) %>%
-  dplyr::mutate(rowNum = row_number()) %>%
-  dplyr::select(species, genus, specificEpithet, decimalLongitude, decimalLatitude, country, year, month, rowNum)
-Background_ALA$species <- ifelse(!Background_ALA$species == "", Background_ALA$species,
-                                 paste(Background_ALA$genus, Background_ALA$specificEpithet))
-
-indexRows <- list()
-counter <- 1
-for(i in 1:nrow(Background_ALA)) {
-  if(decimalNums(Background_ALA$decimalLongitude[[i]]) < 2 &
-     decimalNums(Background_ALA$decimalLatitude[[i]]) < 2) {
-    indexRows[[counter]] <- i
-    counter <- counter+1
-  }
-}
-
-Background_ALA <- Background_ALA[!Background_ALA$rowNum %in% indexRows, ] %>%
-  dplyr::select(-rowNum) %>%
-  dplyr::select(c(1,4:8))
-
-Background_ALA %<>% mutate(source = "Atlas of Living Australia")
-
-print("Cleaned Atlas of Living Australia (Culex annulirostris) background")
 
 
 #------------------------------------------------------
@@ -209,8 +175,7 @@ rast <- raster("EVIM.tif")
 
 bg_species_list <- c("Main",
                      "An_gambiae",
-                     "An_stephensi",
-                     "Cx_annuli")
+                     "An_stephensi")
 
 
 #------------------------------------------------------
@@ -225,9 +190,6 @@ for(i in 1:length(bg_species_list)) {
   }
   if(bg_species_list[i] == "An_stephensi") {
     Background <- Background_Insecta %>% filter(source %in% c("GBIF","Sinka et al., 2020"))
-  }
-  if(bg_species_list[i] == "Cx_annuli") {
-    Background <- Background_Insecta %>% filter(source %in% c("GBIF","Atlas of Living Australia"))
   }
   
   bg_points <- Background %>% dplyr::select(c(decimalLongitude, decimalLatitude)) %>%
@@ -255,7 +217,6 @@ for(i in 1:length(bg_species_list)) {
 saveRDS(bg_longlat_Main, file = "Background_Mask_Main.RDS")
 saveRDS(bg_longlat_An_gambiae, file = "Background_Mask_An_Gambiae.RDS")
 saveRDS(bg_longlat_An_stephensi, file = "Background_Mask_An_Stephensi.RDS")
-saveRDS(bg_longlat_Cx_annuli, file = "Background_Mask_Cx_Annuli.RDS")
 
 print("Saved all weighted background bias masks")
 

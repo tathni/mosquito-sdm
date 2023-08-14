@@ -5,7 +5,7 @@
 # Description: Gather filter metadata for each mosquito species' occurrence points as they pass through sieves of filters
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------

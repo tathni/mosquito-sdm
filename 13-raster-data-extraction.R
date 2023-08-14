@@ -5,7 +5,7 @@
 # Description: Extract and collate raster data for each of the mosquito species' analysis dataset
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------
@@ -81,7 +81,7 @@ bias_masks <- alply(list.files("Background Bias Masks",
                                  df <- readRDS(file)
                                  return(df)
                                }) %>%
-  setNames(c("An_Gambiae","An_Stephensi","Cx_Annuli","Main"))
+  setNames(c("An_Gambiae","An_Stephensi","Main"))
 bias_masks_index <- c(4,4,1,2,3,4,4,4)
 
 
@@ -96,7 +96,7 @@ ecoregions <- alply(list.files("Ecoregion_Outputs/Shapefiles",
                                  return(shapefile)
                                }) %>%
   setNames(c("Ae_Aegypti","Ae_Albopictus","An_Gambiae","An_Stephensi",
-             "Cx_Annuli","Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
+             "Cx_Pipiens","Cx_Quinque","Cx_Tarsalis"))
 
 
 
@@ -248,7 +248,6 @@ for(i in 1:length(SpeciesOfInterest_Names)) {
   #------------------------------------------------------
   if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
      SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
-     SpeciesOfInterest_Names[[i]] == "Culex annulirostris" |
      SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
     predictors <- predictors_yearRound }
   

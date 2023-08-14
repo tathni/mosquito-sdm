@@ -27,8 +27,8 @@ library(data.table)
 library(raster)
 library(maptools)
 library(dismo)
-library(rJava)
-library(enmSdm)
+#library(rJava)
+#library(enmSdm)
 library(maxnet)
 library(rgdal)
 library(sf)
@@ -62,7 +62,6 @@ library(Ckmeans.1d.dp)
 #------------------------------------------------------
 data(wrld_simpl)
 my_crs <- "+proj=longlat +datum=WGS84 +no_defs"
-memory.limit(size=56000)
 seedNum <- 250
 set.seed(seedNum)
 
@@ -70,11 +69,12 @@ set.seed(seedNum)
 #------------------------------------------------------
 # Create dataframes for species of interest and activity seasons
 #------------------------------------------------------
+species_inds <- 1:7
+
 SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Aedes albopictus",
                              "Anopheles gambiae",
                              "Anopheles stephensi",
-                             "Culex annulirostris",
                              "Culex pipiens",
                              "Culex quinquefasciatus",
                              "Culex tarsalis")
@@ -83,7 +83,6 @@ SpeciesOfInterest_NoSpace <- c("AedesAegypti",
                                "AedesAlbopictus",
                                "AnophelesGambiae",
                                "AnophelesStephensi",
-                               "CulexAnnulirostris",
                                "CulexPipiens",
                                "CulexQuinquefasciatus",
                                "CulexTarsalis")
@@ -92,7 +91,6 @@ SpeciesOfInterest_Underscore <- c("Aedes_aegypti",
                                   "Aedes_albopictus",
                                   "Anopheles_gambiae",
                                   "Anopheles_stephensi",
-                                  "Culex_annulirostris",
                                   "Culex_pipiens",
                                   "Culex_quinquefasciatus",
                                   "Culex_tarsalis")
@@ -100,7 +98,6 @@ SpeciesOfInterest_Underscore <- c("Aedes_aegypti",
 ActivitySeason_Type <- c("None- Year Round",
                          "Photoperiod",
                          "Precipitation",
-                         "None- Year Round",
                          "None- Year Round",
                          "Photoperiod",
                          "None- Year Round",
@@ -110,7 +107,7 @@ ActivitySeason_Type <- c("None- Year Round",
 #------------------------------------------------------
 # Define local project directory for data load-in
 #------------------------------------------------------
-project_dir <- "E:/SynologyDrive/Tejas_Server/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/"
+project_dir <- "D:/SynologyDrive/Tejas_Local/! Research/! Mordecai Lab/! Mosquito SDM Thermal Dependence/"
 setwd(project_dir)
 
 

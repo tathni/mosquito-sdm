@@ -5,7 +5,7 @@
 # Description: Analyze the lab-based thermal trait data and obtains mosquito abundance curves
 #######################################################
 
-source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
+source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 
 
 #------------------------------------------------------
@@ -270,24 +270,6 @@ for(i in 1:5000) {
 
 
 #------------------------------------------------------
-# Culex annulirostris
-#------------------------------------------------------
-CxAnnulirostris_Temp <- read.csv("Temperature Trait Data/Trait Trajectories/CxanRRVx.T.csv", stringsAsFactors = FALSE)
-colnames(CxAnnulirostris_Temp) <- "Celsius"
-CxAnnulirostris_EFD <- read.csv("Temperature Trait Data/Trait Trajectories/CxanRRVx.EFD.csv", stringsAsFactors = FALSE) %>%
-  setNames(c(paste0("X",1:7500)))
-CxAnnulirostris_pLA <- read.csv("Temperature Trait Data/Trait Trajectories/CxanRRVx.pLA.csv", stringsAsFactors = FALSE) %>%
-  setNames(c(paste0("X",1:7500)))
-CxAnnulirostris_pEA <- CxAnnulirostris_pLA
-CxAnnulirostris_MDR <- read.csv("Temperature Trait Data/Trait Trajectories/CxanRRVx.MDR.csv", stringsAsFactors = FALSE) %>%
-  setNames(c(paste0("X",1:7500)))
-CxAnnulirostris_lf <- read.csv("Temperature Trait Data/Trait Trajectories/CxanRRVx.lf.csv", stringsAsFactors = FALSE) %>%
-  setNames(c(paste0("X",1:7500)))
-CxAnnulirostris_u <- 1/CxAnnulirostris_lf
-CxAnnulirostris_u[CxAnnulirostris_u == Inf] <- 0
-
-
-#------------------------------------------------------
 # Culex pipiens
 #------------------------------------------------------
 CxPipiens_Temp <- read.csv("Temperature Trait Data/Trait Trajectories/CxpiWNVx.T.csv", stringsAsFactors = FALSE)
@@ -410,12 +392,6 @@ AnStephensi_M <- M(AnStephensi_Temp,
                    AnStephensi_MDR,
                    AnStephensi_u)
 
-CxAnnulirostris_M <- M(CxAnnulirostris_Temp,
-                       CxAnnulirostris_EFD,
-                       CxAnnulirostris_pEA,
-                       CxAnnulirostris_MDR,
-                       CxAnnulirostris_u)
-
 CxPipiens_M <- M(CxPipiens_Temp,
                  CxPipiens_EFD,
                  CxPipiens_pEA,
@@ -462,10 +438,6 @@ AnStephensi_Mean <- rowMeans(AnStephensi_M) %>% data.frame %>% reorder()
 AnStephensi_upperCI <- apply(AnStephensi_M, 1, quantile, probs = 0.975) %>% data.frame %>% reorder()
 AnStephensi_lowerCI <- apply(AnStephensi_M, 1, quantile, probs = 0.025) %>% data.frame %>% reorder()
 
-CxAnnulirostris_Mean <- rowMeans(CxAnnulirostris_M) %>% data.frame %>% reorder()
-CxAnnulirostris_upperCI <- apply(CxAnnulirostris_M, 1, quantile, probs = 0.975) %>% data.frame %>% reorder()
-CxAnnulirostris_lowerCI <- apply(CxAnnulirostris_M, 1, quantile, probs = 0.025) %>% data.frame %>% reorder()
-
 CxPipiens_Mean <- rowMeans(CxPipiens_M) %>% data.frame %>% reorder()
 CxPipiens_upperCI <- apply(CxPipiens_M, 1, quantile, probs = 0.975) %>% data.frame %>% reorder()
 CxPipiens_lowerCI <- apply(CxPipiens_M, 1, quantile, probs = 0.025) %>% data.frame %>% reorder()
@@ -485,7 +457,7 @@ CxTarsalis_lowerCI <- apply(CxTarsalis_M, 1, quantile, probs = 0.025) %>% data.f
 #------------------------------------------------------
 plot_Mcurve <- function (mean, upperCI, lowerCI, inputColor) {
   plot(mean$temp, mean$Mt, type = "l",
-       xlab = "Temperature (°C)", ylab = "Mosquito Abundance (M(T))",
+       xlab = "Temperature (ï¿½C)", ylab = "Mosquito Abundance (M(T))",
        col = inputColor, lwd=4,
        ylim=c(0, max(upperCI$Mt)))
   polygon(c(mean$temp, rev(mean$temp)), c(upperCI$Mt, rev(lowerCI$Mt)),
@@ -508,10 +480,6 @@ dev.off()
 
 pdf("! Figures/Mosquito Abundance Curves/Anopheles stephensi M-curve.pdf")
 plot_Mcurve(AnStephensi_Mean, AnStephensi_upperCI, AnStephensi_lowerCI, "dodgerblue4")
-dev.off()
-
-pdf("! Figures/Mosquito Abundance Curves/Culex annulirostris M-curve.pdf")
-plot_Mcurve(CxAnnulirostris_Mean, CxAnnulirostris_upperCI, CxAnnulirostris_lowerCI, "dodgerblue4")
 dev.off()
 
 pdf("! Figures/Mosquito Abundance Curves/Culex pipiens M-curve.pdf")

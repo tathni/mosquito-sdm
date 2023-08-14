@@ -27,9 +27,9 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
   species_inds <- as.numeric(args[1]) 
   
 } else {
-  source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
-  species_inds <- 1:8 
+  source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 }
+
 
 
 #------------------------------------------------------
@@ -52,37 +52,6 @@ precipSeason_index <- c(1:6,11:12,15,9:10)
 predictors_yearRound <- predictors_preStack[yearRound_index] %>% stack()
 predictors_photoSeason <- predictors_preStack[photoSeason_index] %>% stack()
 predictors_precipSeason <- predictors_preStack[precipSeason_index] %>% stack()
-
-
-#------------------------------------------------------
-# Load in lists
-#------------------------------------------------------
-SpeciesOfInterest_Names <- c("Aedes aegypti",
-                             "Aedes albopictus",
-                             "Anopheles gambiae",
-                             "Anopheles stephensi",
-                             "Culex annulirostris",
-                             "Culex pipiens",
-                             "Culex quinquefasciatus",
-                             "Culex tarsalis")
-
-SpeciesOfInterest_Underscore <- c("Aedes_aegypti",
-                                  "Aedes_albopictus",
-                                  "Anopheles_gambiae",
-                                  "Anopheles_stephensi",
-                                  "Culex_annulirostris",
-                                  "Culex_pipiens",
-                                  "Culex_quinquefasciatus",
-                                  "Culex_tarsalis")
-
-ActivitySeason_Type <- c("None- Year Round",
-                         "Photoperiod",
-                         "Precipitation",
-                         "None- Year Round",
-                         "None- Year Round",
-                         "Photoperiod",
-                         "None- Year Round",
-                         "Photoperiod")
 
 
 #------------------------------------------------------
@@ -111,7 +80,6 @@ for(i in species_inds) {
   #------------------------------------------------------
   if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
      SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
-     SpeciesOfInterest_Names[[i]] == "Culex annulirostris" |
      SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
     predictor_names <- rasterNames[yearRound_index]
     predictors <- predictors_yearRound
@@ -197,18 +165,12 @@ for(i in species_inds) {
   }
   
   
-  # ??? pdp's with density histogram underneath?
-  # ??? Geom_bin2d plots
-  # ??? (maybe on script 13 not here) maps + ecoregions shaded in + points
-  # ??? tilted stack of covariate rasters
-  
   
   #------------------------------------------------------
   ## 4. BIVARIATE PARTIAL DEPENDENCE PLOTS ##
   #------------------------------------------------------
   if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
      SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
-     SpeciesOfInterest_Names[[i]] == "Culex annulirostris" |
      SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
     save_name <- paste0("XGBoost_Figures/Bivariate_PDPs/",SpeciesOfInterest_Underscore[[i]],"_TAM_TASD_Bivariate.pdf")
     pdf(save_name)
@@ -240,19 +202,6 @@ for(i in species_inds) {
     print(plotPartial(pdp_bivariate, col.regions = color_scheme))
     dev.off()
   }
-  
-  
-  # #------------------------------------------------------
-  # ## 5. SPATIAL PREDICTION MAPS OF MOSQUITO OCCURRENCE ##
-  # #------------------------------------------------------
-  # xgb_pred_fun <- function(model, data) {
-  #   predict(model, as.matrix(data))
-  # }
-  # 
-  # tic <- Sys.time()
-  # xgb_spatial_pred <- raster::predict(predictors, xgb.fit, fun=xgb_pred_fun)
-  # toc <- Sys.time()
-  # toc - tic  # 47 min
 
   
   
@@ -260,46 +209,318 @@ for(i in species_inds) {
 
 
 
+#------------------------------------------------------
+## 6. COMPILED ROC CURVES ##
+#------------------------------------------------------
+roc_data <- purrr::map_dfr(species_inds, function(i){
+  #------------------------------------------------------
+  # Data load-in
+  #------------------------------------------------------
+  xgb.fit <- xgb.load(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_XGBoost.model"))
+  sdm_data <- readRDS(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_SDM_Data_Predictions.RDS"))
+  
+  train_data <- sdm_data %>% filter(Data_Split == "Training")
+  eval_data <- sdm_data %>% filter(Data_Split == "Evaluation")
+  
+  y_train <- train_data$Occ1_or_Bg0
+  y_eval <- eval_data$Occ1_or_Bg0
+  pred_train <- train_data$Predicted_Value
+  pred_eval <- eval_data$Predicted_Value
+  
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
+     SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
+     SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
+    predictor_names <- rasterNames[yearRound_index]
+    predictors <- predictors_yearRound
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes albopictus" |
+     SpeciesOfInterest_Names[[i]] == "Culex pipiens" |
+     SpeciesOfInterest_Names[[i]] == "Culex tarsalis") {
+    predictor_names <- rasterNames[photoSeason_index]
+    predictors <- predictors_photoSeason
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Anopheles gambiae") {
+    predictor_names <- rasterNames[precipSeason_index]
+    predictors <- predictors_precipSeason
+  }
+  
+  
+  #------------------------------------------------------
+  # Calculate sensitivity and specificity for training and eval
+  #------------------------------------------------------
+  sens_train <- roc(y_train, pred_train)$sensitivities
+  spec_train <- roc(y_train, pred_train)$specificities
+  sens_eval <- roc(y_eval, pred_eval)$sensitivities
+  spec_eval <- roc(y_eval, pred_eval)$specificities
+  
+  
+  rbind(data.frame(species = SpeciesOfInterest_Names[i],
+                   train_eval = "Training",
+                   tpr = sens_train,
+                   fpr = 1 - spec_train),
+        data.frame(species = SpeciesOfInterest_Names[i],
+                   train_eval = "Evaluation",
+                   tpr = sens_eval,
+                   fpr = 1 - spec_eval))
+  
+})
 
 
+auc_vals <- purrr::map_dfr(species_inds, function(i){
+  #------------------------------------------------------
+  # Data load-in
+  #------------------------------------------------------
+  xgb.fit <- xgb.load(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_XGBoost.model"))
+  sdm_data <- readRDS(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_SDM_Data_Predictions.RDS"))
+  
+  train_data <- sdm_data %>% filter(Data_Split == "Training")
+  eval_data <- sdm_data %>% filter(Data_Split == "Evaluation")
+  
+  y_train <- train_data$Occ1_or_Bg0
+  y_eval <- eval_data$Occ1_or_Bg0
+  pred_train <- train_data$Predicted_Value
+  pred_eval <- eval_data$Predicted_Value
+ 
+  
+  #------------------------------------------------------
+  # Calculate AUC for training and eval
+  #------------------------------------------------------
+  auc_train <- roc(y_train, pred_train)$auc %>% round(3)
+  auc_eval <- roc(y_eval, pred_eval)$auc %>% round(3)
+  
+  
+  rbind(data.frame(species = SpeciesOfInterest_Names[i],
+                   train_eval = "Training",
+                   auc = auc_train),
+        data.frame(species = SpeciesOfInterest_Names[i],
+                   train_eval = "Evaluation",
+                   auc = auc_eval))
+})
+
+
+roc_plot <- ggplot(roc_data, aes(x = fpr, y = tpr, color = train_eval)) +
+  geom_line(lwd=0.5) +
+  facet_wrap(~ species, ncol=2) +
+  geom_text(data = auc_vals %>% dplyr::filter(train_eval == "Training"),
+            aes(x = .75, y = 0.23, label = paste0("Train AUC = ", auc)),
+            show.legend = F) +
+  geom_text(data = auc_vals %>% dplyr::filter(train_eval == "Evaluation"),
+            aes(x = .75, y = 0.1, label = paste0("Eval AUC = ", auc)),
+            show.legend = F) +
+  theme_bw() +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_text(size = 11, face = "italic")) +
+  xlab("\nFalse Positive Rate (1 - Specificity)") +
+  ylab("True Positive Rate (Sensitivity)\n") +
+  scale_color_manual(values = c("Training" = "maroon",
+                                "Evaluation" = "dodgerblue4")) +
+  labs(color = "Partition") 
+
+
+ggsave("XGBoost_Figures/Compiled ROCs/Compiled_ROCs.pdf", roc_plot, device = "pdf", width=8, height=10)
+ggsave("XGBoost_Figures/Compiled ROCs/Compiled_ROCs.jpg", roc_plot, device = "jpg", width=8, height=10)
+
+
+
+
+
+#------------------------------------------------------
+## 7. COMPILED VARIABLE IMPORTANCE PLOTS ##
+#------------------------------------------------------
+vip <- auc_vals <- purrr::map_dfr(species_inds, function(i){
+  #------------------------------------------------------
+  # Data load-in
+  #------------------------------------------------------
+  xgb.fit <- xgb.load(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_XGBoost.model"))
+  sdm_data <- readRDS(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_SDM_Data_Predictions.RDS"))
+  
+  train_data <- sdm_data %>% filter(Data_Split == "Training")
+  eval_data <- sdm_data %>% filter(Data_Split == "Evaluation")
+  
+  train_xgb_dmatrix <- xgb.DMatrix(data = as.matrix(train_data %>% dplyr::select(c(7:17))),
+                                   label = as.matrix(train_data %>% dplyr::select(3)))
+  eval_xgb_dmatrix <- xgb.DMatrix(data = as.matrix(eval_data %>% dplyr::select(c(7:17))),
+                                  label = as.matrix(eval_data %>% dplyr::select(3)))
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
+     SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
+     SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
+    predictor_names <- rasterNames[yearRound_index]
+    predictors <- predictors_yearRound
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes albopictus" |
+     SpeciesOfInterest_Names[[i]] == "Culex pipiens" |
+     SpeciesOfInterest_Names[[i]] == "Culex tarsalis") {
+    predictor_names <- rasterNames[photoSeason_index]
+    predictors <- predictors_photoSeason
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Anopheles gambiae") {
+    predictor_names <- rasterNames[precipSeason_index]
+    predictors <- predictors_precipSeason
+  }
+  
+  
+  #------------------------------------------------------
+  # Calculate VIP matrix
+  #------------------------------------------------------
+  imp_matrix <- xgb.importance(colnames(train_xgb_dmatrix), model = xgb.fit) %>%
+    cbind(Species = SpeciesOfInterest_Names[i])
+  
+})
+
+
+vip %<>% 
+  mutate(color = case_when(Feature %in% c("TAM", "PhotoASTM", "PrecipASTM") ~ "red", 
+                           Feature %in% c("TASD", "PhotoASTSD", "PrecipASTSD") ~ "blue",
+                           T ~ "grey"))
+
+vip_plot <- ggplot(vip, aes(xmin = 0, xmax = Gain, y = reorder_within(Feature, +Gain, Species), color = I(color), fill = I(color))) + 
+  geom_linerange(lwd = 3.5) + 
+  scale_y_reordered() +
+  facet_wrap(~Species, ncol = 2, scales = "free") + 
+  theme_bw() +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_text(size = 11, face = "italic")) +
+  xlab("\nGain") +
+  ylab("Feature\n")
+
+ggsave("XGBoost_Figures/Compiled VIPs/Compiled_VIPs.pdf", vip_plot, device = "pdf", width=8, height=10)
+ggsave("XGBoost_Figures/Compiled VIPs/Compiled_VIPs.jpg", vip_plot, device = "jpg", width=8, height=10)
 
 
 # ????
+#------------------------------------------------------
+## 8. SCATTERPLOT OF THERMAL MINIMA FROM M(T) vs. PDP ##
+#------------------------------------------------------
+pdp_storage = data.frame(species = c(),
+                         pdp_min = c())
+
+for(i in species_inds) {
+  #------------------------------------------------------
+  # Data load-in
+  #------------------------------------------------------
+  xgb.fit <- xgb.load(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_XGBoost.model"))
+  sdm_data <- readRDS(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_SDM_Data_Predictions.RDS"))
+  
+  train_data <- sdm_data %>% filter(Data_Split == "Training")
+  eval_data <- sdm_data %>% filter(Data_Split == "Evaluation")
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
+     SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
+     SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
+    predictor_names <- rasterNames[yearRound_index]
+    predictors <- predictors_yearRound
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes albopictus" |
+     SpeciesOfInterest_Names[[i]] == "Culex pipiens" |
+     SpeciesOfInterest_Names[[i]] == "Culex tarsalis") {
+    predictor_names <- rasterNames[photoSeason_index]
+    predictors <- predictors_photoSeason
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Anopheles gambiae") {
+    predictor_names <- rasterNames[precipSeason_index]
+    predictors <- predictors_precipSeason
+  }
+  
+  
+  #------------------------------------------------------
+  # Create PDP and extract the temperature value at minimum yhat (Tmin from PDP)
+  #------------------------------------------------------
+  pdp_df <- pdp::partial(xgb.fit$handle, pred.var = predictor_names[predictor_names %in% c("TAM","PhotoASTM","PrecipASTM")], 
+                         train = as.matrix(train_data %>% dplyr::select(c(7:17))))
+  pdp_min <- pdp_df[which.min(pdp_df$yhat),] %>% dplyr::select(1) %>% as.numeric() %>% round(1)
+  
+  
+  #------------------------------------------------------
+  # Add the Tmin value to storage dataframe
+  #------------------------------------------------------
+  pdp_storage %<>% rbind(c(SpeciesOfInterest_Names[i], pdp_min))
+  
+}
+
+
+thermal_minima_df <- data.frame(Species = c("Aedes aegypti",
+                                            "Aedes albopictus",
+                                            "Anopheles gambiae",
+                                            "Anopheles stephensi",
+                                            "Culex pipiens",
+                                            "Culex quinquefasciatus",
+                                            "Culex tarsalis"),
+                                Mt = c(16, 15.5, 18, 15, 11, 13, 9),
+                                PDP = c(11, 9.5, 18, 16, 8.5, 11, 7.5))
+
+## ?? plot scatterplot and recreate figure from manuscript
+## ?? get spearman and R2 value
+## ?? once i get proper min values, then replace PDP values
+
 
 
 #------------------------------------------------------
-# Plot ROC curves
+## 9. SPATIAL PREDICTION MAPS OF MOSQUITO OCCURRENCE ##
 #------------------------------------------------------
-paste0("Plotting training ROC curve")
-y <- train_data[, 1]
-rownames(train_data) <- NULL
-pred <- predict(xgb.fit, xgb.DMatrix(as.matrix(train_data[2:10])))
-save_name <- paste0(SpeciesOfInterest_Names[i]," ROC Training.pdf")
-pdf(save_name)
-plot.roc(y, pred,
-         print.auc = TRUE,
-         print.auc.y = 0.4,
-         identity.col = "grey50",
-         col = "maroon",
-         legacy.axes = TRUE,
-         grid = TRUE)
-dev.off()
+xgb_pred <- function(model, data, ...) {
+  predict(model, newdata = as.matrix(data), ...)
+}
 
-paste0("Plotting evaluation ROC curve")
-eval_data <- data %>% filter(Species == SpeciesOfInterest_Names[i], DataSplit == "Evaluation") %>% dplyr::select(c(5:14))
-y <- eval_data[, 1]
-rownames(eval_data) <- NULL
-pred <- predict(xgb.fit, xgb.DMatrix(as.matrix(eval_data[2:10])))
-save_name <- paste0(SpeciesOfInterest_Names[i]," ROC Evaluation.pdf")
-pdf(save_name)
-plot.roc(y, pred,
-         print.auc = TRUE,
-         print.auc.y = 0.4,
-         identity.col = "grey50",
-         col = "dodgerblue4",
-         legacy.axes = TRUE,
-         grid = TRUE)
-dev.off()
+for(i in species_inds) {
+  tic <- Sys.time()
+  
+  #------------------------------------------------------
+  # Select predictors according to activity season
+  #------------------------------------------------------
+  if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
+     SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
+     SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
+    predictor_names <- rasterNames[yearRound_index]
+    predictors <- predictors_yearRound
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Aedes albopictus" |
+     SpeciesOfInterest_Names[[i]] == "Culex pipiens" |
+     SpeciesOfInterest_Names[[i]] == "Culex tarsalis") {
+    predictor_names <- rasterNames[photoSeason_index]
+    predictors <- predictors_photoSeason
+  }
+  
+  if(SpeciesOfInterest_Names[[i]] == "Anopheles gambiae") {
+    predictor_names <- rasterNames[precipSeason_index]
+    predictors <- predictors_precipSeason
+  }
+  
+  
+  #------------------------------------------------------
+  # Acquire model fit and spatial prediction
+  #------------------------------------------------------
+  xgb.fit <- xgb.load(paste0("XGBoost_Outputs/",SpeciesOfInterest_Underscore[[i]],"_XGBoost.model"))
+  p <- predict(predictors, model=xgb.fit, fun=xgb_pred)
+  save_name <- paste0(SpeciesOfInterest_Underscore[i],"_Spatial_Prediction_Map.pdf")
+  pdf(paste0("! Figures/Spatial Prediction Maps/",save_name,".pdf"))
+  plot(p)
+  dev.off()
+  
+}
+
+
+#------------------------------------------------------
+# 10. OVERLAYED M(T) AND PDP PLOTS
+#------------------------------------------------------
+
+
+
+
+
+
+
+## ?????? need to clean and delete below
+
+
 
 
 
@@ -341,11 +562,11 @@ for(k in 1:length(predictors)) {
 #------------------------------------------------------
 if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
    SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
-   SpeciesOfInterest_Names[[i]] == "Culex annulirostris" |
    SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
   save_name <- paste0(SpeciesOfInterest_Names[i]," TAM-TASD Bivariate.pdf")
   pdf(save_name)
-  pd <- pdp::partial(xgb.fit, train = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)), pred.var = c("TAM","TASD"), chull = TRUE)
+  pd <- pdp::partial(xgb.fit, train = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)),
+                     pred.var = c("TAM","TASD"), chull = TRUE)
   rwb <- colorRampPalette(c("red", "white", "blue"))
   print(plotPartial(pd, col.regions = rwb))
   dev.off()
@@ -353,11 +574,11 @@ if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
 
 if(SpeciesOfInterest_Names[[i]] == "Aedes aegypti" |
    SpeciesOfInterest_Names[[i]] == "Anopheles stephensi" |
-   SpeciesOfInterest_Names[[i]] == "Culex annulirostris" |
    SpeciesOfInterest_Names[[i]] == "Culex quinquefasciatus") {
   save_name <- paste0(SpeciesOfInterest_Names[i]," TAM-TASD Bivariate.pdf")
   pdf(save_name)
-  pd <- pdp::partial(xgb.fit, train = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)), pred.var = c("TAM","TASD"), chull = TRUE)
+  pd <- pdp::partial(xgb.fit, train = as.matrix(train_data %>% dplyr::select(-Occ1_or_Bg0)),
+                     pred.var = c("TAM","TASD"), chull = TRUE)
   rwb <- colorRampPalette(c("red", "white", "blue"))
   print(plotPartial(pd, col.regions = rwb))
   dev.off()
@@ -403,32 +624,6 @@ dev.off()
 
 
 
-
-### ROC AUC CURVES ###
-# Calculate ROC and AUC for training and evaluation data
-print(paste0("Calculating the training AUC for ", SpeciesOfInterest_Names[i]))
-roc_auc_save <- paste0(SpeciesOfInterest_Names[i]," AUC.pdf")
-pdf(roc_auc_save)
-plot.roc(c(rep(1, nrow(cells_train)), rep(0, nrow(bg))), # Training data
-         as.vector(predict(maxnet_fit$model, predictors_train_df)),
-         print.auc = TRUE,
-         print.auc.y = 0.4,
-         identity.col = "grey50",
-         col = "firebrick1",
-         legacy.axes = TRUE,
-         grid = TRUE)
-plot.roc(c(rep(1, nrow(cells_eval)), rep(0, nrow(bg))), # Evaluation data
-         as.vector(predict(maxnet_fit$model, predictors_eval_df)),
-         add = TRUE,
-         print.auc = TRUE,
-         print.auc.y = 0.35,
-         col = "#1c61b6")
-legend("bottomright", legend=c("Training", "Evaluation"),
-       col=c("firebrick1", "#1c61b6"), lwd=2)
-dev.off()
-
-
-
 ### VECTOR DISTRIBUTION PLOTS ###
 # Read in, plot, and save all of the MaxEnt vector distributions
 modelProjections <- alply(list.files("MaxEnt Data Output/Vector Distribution TIFs",
@@ -464,5 +659,8 @@ toc - tic
 
 
 ### ??
+
+
+
 
 

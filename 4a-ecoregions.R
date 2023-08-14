@@ -24,8 +24,7 @@ if(Sys.getenv('SLURM_JOB_ID') != ""){ # Check if the script is running on Sherlo
   species_inds <- as.numeric(args[1]) 
   
 } else {
-  source("E:/Documents/GitHub/mosquito-sdm/0-config.R")
-  species_inds <- 1:8 
+  source("C:/Users/tejas/Documents/GitHub/mosquito-sdm/0-config.R")
 }
 
 
@@ -37,7 +36,6 @@ SpeciesOfInterest_NoSpace <- c("AedesAegypti",
                                "AedesAlbopictus",
                                "AnophelesGambiae",
                                "AnophelesStephensi",
-                               "CulexAnnulirostris",
                                "CulexPipiens",
                                "CulexQuinquefasciatus",
                                "CulexTarsalis")
@@ -46,7 +44,6 @@ SpeciesOfInterest_Names <- c("Aedes aegypti",
                              "Aedes albopictus",
                              "Anopheles gambiae",
                              "Anopheles stephensi",
-                             "Culex annulirostris",
                              "Culex pipiens",
                              "Culex quinquefasciatus",
                              "Culex tarsalis")
