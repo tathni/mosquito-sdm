@@ -2,7 +2,7 @@
 # Author: Tejas Athni
 # Project: Mosquito SDM Thermal Dependence
 
-# Description: Run the XGBoost machine learning model by species
+# Description: Run the XGBoost machine learning model per species; bootstrapping analysis to get variability around estimates
 #######################################################
 
 
